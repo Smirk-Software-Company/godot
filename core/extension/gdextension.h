@@ -108,6 +108,7 @@ class GDExtension : public Resource {
 
 	static HashMap<StringName, GDExtensionInterfaceFunctionPtr> gdextension_interface_functions;
 
+	Error _initialize_library(GDExtensionInitializationFunction initialization_function, const String &p_entry_symbol);
 protected:
 	static void _bind_methods();
 
@@ -120,6 +121,7 @@ public:
 	static String find_extension_library(const String &p_path, Ref<ConfigFile> p_config, std::function<bool(String)> p_has_feature, PackedStringArray *r_tags = nullptr);
 
 	Error open_library(const String &p_path, const String &p_entry_symbol);
+	Error open_direct_library(GDExtensionInitializationFunction init_function, const String &p_library_name);
 	void close_library();
 
 #if defined(WINDOWS_ENABLED) && defined(TOOLS_ENABLED)

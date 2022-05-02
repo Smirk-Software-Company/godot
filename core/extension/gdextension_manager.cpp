@@ -34,6 +34,8 @@
 #include "core/io/file_access.h"
 #include "core/object/script_language.h"
 
+static const char* direct_extension_prefix = "direct_extension_";
+
 GDExtensionManager::LoadStatus GDExtensionManager::_load_extension_internal(const Ref<GDExtension> &p_extension) {
 	if (level >= 0) { // Already initialized up to some level.
 		int32_t minimum_level = p_extension->get_minimum_library_initialization_level();
@@ -84,6 +86,34 @@ GDExtensionManager::LoadStatus GDExtensionManager::load_extension(const String &
 
 	gdextension_map[p_path] = extension;
 	return LOAD_STATUS_OK;
+}
+
+GDExtensionManager::LoadStatus GDExtensionManager::load_direct_extension(const String &p_library_name, GDExtensionInitializationFunction p_init_function) {
+	String path = String(direct_extension_prefix) + p_library_name;
+	if (gdextension_map.has(path)) {
+		return LOAD_STATUS_ALREADY_LOADED;
+	}
+
+	Ref<GDExtension> extension;
+	extension.instantiate();
+	Error err = extension->open_direct_library(p_init_function, p_library_name);
+	if (err) {
+		return LOAD_STATUS_FAILED;
+	}
+
+	LoadStatus status = _load_extension_internal(extension);
+	if (status != LOAD_STATUS_OK) {
+		return status;
+	}
+
+	gdextension_map[path] = extension;
+	return LOAD_STATUS_OK;
+}
+
+GDExtensionManager::LoadStatus GDExtensionManager::register_direct_extension(const String& p_library_name, GDExtensionInitializationFunction p_init_function){
+	direct_extensions_registry[p_library_name] = p_init_function;
+
+	return LoadStatus::LOAD_STATUS_OK;
 }
 
 GDExtensionManager::LoadStatus GDExtensionManager::reload_extension(const String &p_path) {
@@ -226,6 +256,10 @@ void GDExtensionManager::_reload_all_scripts() {
 #endif // TOOLS_ENABLED
 
 void GDExtensionManager::load_extensions() {
+	for(HashMap<String, GDExtensionInitializationFunction>::Iterator init_function = direct_extensions_registry.begin(); init_function != direct_extensions_registry.end(); ++init_function){
+		load_direct_extension(init_function->key, init_function->value);
+	}
+
 	Ref<FileAccess> f = FileAccess::open(GDExtension::get_extension_list_config_file(), FileAccess::READ);
 	while (f.is_valid() && !f->eof_reached()) {
 		String s = f->get_line().strip_edges();
@@ -283,6 +317,7 @@ void GDExtensionManager::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("extensions_reloaded"));
 }
 
+HashMap<String, GDExtensionInitializationFunction> GDExtensionManager::direct_extensions_registry;
 GDExtensionManager *GDExtensionManager::singleton = nullptr;
 
 GDExtensionManager::GDExtensionManager() {

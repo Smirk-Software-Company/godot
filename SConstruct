@@ -223,6 +223,7 @@ opts.Add(
 opts.Add(BoolVariable("use_precise_math_checks", "Math checks use very precise epsilon (debug option)", False))
 opts.Add(BoolVariable("scu_build", "Use single compilation unit build", False))
 opts.Add("scu_limit", "Max includes per SCU file when using scu_build (determines RAM use)", "0")
+opts.Add(BoolVariable("shared_library", "Build the engine only as a shared library", False))
 
 # Thirdparty libraries
 opts.Add(BoolVariable("builtin_brotli", "Use the built-in Brotli library", True))
@@ -498,7 +499,8 @@ if selected_platform in platform_list:
 
     # Environment flags
     CCFLAGS = env.get("CCFLAGS", "")
-    env["CCFLAGS"] = ""
+    if env["shared_library"]:
+        env["CCFLAGS"] = "-fPIC"
     env.Append(CCFLAGS=str(CCFLAGS).split())
 
     CFLAGS = env.get("CFLAGS", "")

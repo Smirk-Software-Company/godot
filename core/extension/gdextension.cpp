@@ -37,6 +37,8 @@
 #include "core/version.h"
 #include "gdextension_manager.h"
 
+static const void *direct_library_instance = (void *) "L";
+
 extern void gdextension_setup_interface();
 extern GDExtensionInterfaceFunctionPtr gdextension_get_proc_address(const char *p_name);
 
@@ -731,6 +733,10 @@ Error GDExtension::open_library(const String &p_path, const String &p_entry_symb
 	}
 
 	GDExtensionInitializationFunction initialization_function = (GDExtensionInitializationFunction)entry_funcptr;
+	return _initialize_library(initialization_function, p_entry_symbol);
+}
+
+Error GDExtension::_initialize_library(GDExtensionInitializationFunction initialization_function, const String &p_entry_symbol) {
 	GDExtensionBool ret = initialization_function(&gdextension_get_proc_address, this, &initialization);
 
 	if (ret) {
@@ -738,14 +744,25 @@ Error GDExtension::open_library(const String &p_path, const String &p_entry_symb
 		return OK;
 	} else {
 		ERR_PRINT("GDExtension initialization function '" + p_entry_symbol + "' returned an error.");
-		OS::get_singleton()->close_dynamic_library(library);
+		close_library();
 		return FAILED;
 	}
+
+}
+
+Error GDExtension::open_direct_library(GDExtensionInitializationFunction init_function, const String &p_library_name) {
+	GDExtensionInitializationFunction initialization_function = init_function;
+	reloadable = false;
+	library = (void *) direct_library_instance;
+	return _initialize_library(initialization_function, p_library_name);
 }
 
 void GDExtension::close_library() {
 	ERR_FAIL_NULL(library);
-	OS::get_singleton()->close_dynamic_library(library);
+
+	if (library != direct_library_instance) {
+		OS::get_singleton()->close_dynamic_library(library);
+	}
 
 #if defined(TOOLS_ENABLED) && defined(WINDOWS_ENABLED)
 	// Delete temporary copy of library if it exists.
