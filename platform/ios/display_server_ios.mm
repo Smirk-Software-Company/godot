@@ -177,6 +177,30 @@ void DisplayServerIOS::process_events() {
 	Input::get_singleton()->flush_buffered_events();
 }
 
+DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_handle) {
+#if defined(VULKAN_ENABLED)
+	if (rendering_driver == "vulkan") {
+		ERR_FAIL_COND_V(p_native_handle == nullptr, INVALID_WINDOW_ID);
+		CALayer *layer = (CALayer *)p_native_handle;
+
+		WindowID window_id = window_id_counter++;
+		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
+		if (context_vulkan->window_create(window_id, false, layer, size.width, size.height) != OK) {
+			ERR_FAIL_MSG_V("Failed to create Vulkan window.", INVALID_WINDOW_ID);
+		}
+		return window_id;
+	}
+#endif
+
+#if defined(GLES3_ENABLED)
+	if (rendering_driver == "opengl3") {
+		ERR_FAIL_MSG_V("wrap_external_window does not support opengl3.", INVALID_WINDOW_ID);
+	}
+#endif
+
+	ERR_FAIL_MSG_V("Unknown rendering driver.", INVALID_WINDOW_ID);
+}
+
 void DisplayServerIOS::_dispatch_input_events(const Ref<InputEvent> &p_event) {
 	DisplayServerIOS::get_singleton()->send_input_event(p_event);
 }

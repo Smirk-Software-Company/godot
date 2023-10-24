@@ -107,7 +107,6 @@ public:
 	};
 
 private:
-	DisplayServer::WindowID window_id = DisplayServer::INVALID_WINDOW_ID;
 	bool initialized = false;
 
 	String title;
@@ -235,6 +234,8 @@ private:
 	Ref<Shortcut> debugger_stop_shortcut;
 
 protected:
+	DisplayServer::WindowID window_id = DisplayServer::INVALID_WINDOW_ID;
+
 	virtual Rect2i _popup_adjust_rect() const { return Rect2i(); }
 	virtual void _post_popup() {}
 

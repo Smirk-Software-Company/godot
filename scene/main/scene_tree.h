@@ -422,6 +422,8 @@ public:
 	void set_disable_node_threading(bool p_disable);
 	//default texture settings
 
+	void init_with_root(Window* p_window);
+
 	SceneTree();
 	~SceneTree();
 };

@@ -77,6 +77,8 @@ class DisplayServerIOS : public DisplayServer {
 
 	int virtual_keyboard_height = 0;
 
+	WindowID window_id_counter = 0;
+
 	void perform_event(const Ref<InputEvent> &p_event);
 
 	DisplayServerIOS(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
@@ -94,6 +96,8 @@ public:
 	// MARK: - Events
 
 	virtual void process_events() override;
+
+	virtual WindowID wrap_external_window(void* p_native_handle) override;
 
 	virtual void window_set_rect_changed_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual void window_set_window_event_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;

@@ -3101,9 +3101,16 @@ bool Main::start() {
 		}
 	}
 
+	SceneTree *sml = Object::cast_to<SceneTree>(main_loop);
+	if (sml) {
+		Window* window = memnew(Window);
+		window->set_name("root");
+		window->set_title(GLOBAL_GET("application/config/name"));
+		sml->init_with_root(window);
+	}
+
 	OS::get_singleton()->set_main_loop(main_loop);
 
-	SceneTree *sml = Object::cast_to<SceneTree>(main_loop);
 	if (sml) {
 #ifdef DEBUG_ENABLED
 		if (debug_collisions) {
