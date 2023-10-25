@@ -581,6 +581,22 @@ void DisplayServer::set_icon(const Ref<Image> &p_icon) {
 	WARN_PRINT("Icon not supported by this display server.");
 }
 
+void DisplayServer::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Touch press not supported by this display server.");
+}
+
+void DisplayServer::touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Touch drag not supported by this display server.");
+}
+
+void DisplayServer::touches_canceled(int p_idx, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Touch cancel not supported by this display server.");
+}
+
+void DisplayServer::key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Key press not supported by this display server.");
+}
+
 int64_t DisplayServer::window_get_native_handle(HandleType p_handle_type, WindowID p_window) const {
 	WARN_PRINT("Native handle not supported by this display server.");
 	return 0;
@@ -816,6 +832,11 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("tablet_get_driver_name", "idx"), &DisplayServer::tablet_get_driver_name);
 	ClassDB::bind_method(D_METHOD("tablet_get_current_driver"), &DisplayServer::tablet_get_current_driver);
 	ClassDB::bind_method(D_METHOD("tablet_set_current_driver", "name"), &DisplayServer::tablet_set_current_driver);
+
+	ClassDB::bind_method(D_METHOD("touch_press", "idx", "x", "y", "pressed", "double_click", "window"), &DisplayServer::touch_press);
+	ClassDB::bind_method(D_METHOD("touch_drag", "idx", "prev_x", "prev_y", "x", "y", "pressure", "tilt", "window"), &DisplayServer::touch_drag);
+	ClassDB::bind_method(D_METHOD("touches_canceled", "idx", "window"), &DisplayServer::touches_canceled);
+	ClassDB::bind_method(D_METHOD("key", "key", "char", "unshifted", "physical", "modifiers", "pressed", "window"), &DisplayServer::key);
 
 	BIND_ENUM_CONSTANT(FEATURE_GLOBAL_MENU);
 	BIND_ENUM_CONSTANT(FEATURE_SUBWINDOWS);

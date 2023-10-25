@@ -162,7 +162,7 @@ void DisplayServerIOS::window_set_window_event_callback(const Callable &p_callab
 	window_event_callback = p_callable;
 }
 void DisplayServerIOS::window_set_input_event_callback(const Callable &p_callable, WindowID p_window) {
-	input_event_callback = p_callable;
+	input_event_callbacks[p_window] = p_callable;
 }
 
 void DisplayServerIOS::window_set_input_text_callback(const Callable &p_callable, WindowID p_window) {
@@ -206,7 +206,18 @@ void DisplayServerIOS::_dispatch_input_events(const Ref<InputEvent> &p_event) {
 }
 
 void DisplayServerIOS::send_input_event(const Ref<InputEvent> &p_event) const {
-	_window_callback(input_event_callback, p_event);
+	Ref<InputEventFromWindow> event_from_window = p_event;
+	if (event_from_window.is_valid() && event_from_window->get_window_id() != INVALID_WINDOW_ID) {
+		// Send to a single window.
+		if (input_event_callbacks.has(event_from_window->get_window_id())) {
+			_window_callback(input_event_callbacks[event_from_window->get_window_id()], p_event);
+		}
+	} else {
+		// Send to all windows.
+		for (KeyValue<WindowID, Callable> &E : input_event_callbacks) {
+			_window_callback(E.value, p_event);
+		}
+	}
 }
 
 void DisplayServerIOS::send_input_text(const String &p_text) const {
@@ -227,10 +238,11 @@ void DisplayServerIOS::_window_callback(const Callable &p_callable, const Varian
 
 // MARK: Touches
 
-void DisplayServerIOS::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click) {
+void DisplayServerIOS::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window) {
 	Ref<InputEventScreenTouch> ev;
 	ev.instantiate();
 
+	ev->set_window_id(window);
 	ev->set_index(p_idx);
 	ev->set_pressed(p_pressed);
 	ev->set_position(Vector2(p_x, p_y));
@@ -238,9 +250,10 @@ void DisplayServerIOS::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, 
 	perform_event(ev);
 }
 
-void DisplayServerIOS::touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt) {
+void DisplayServerIOS::touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window) {
 	Ref<InputEventScreenDrag> ev;
 	ev.instantiate();
+	ev->set_window_id(window);
 	ev->set_index(p_idx);
 	ev->set_pressure(p_pressure);
 	ev->set_tilt(p_tilt);
@@ -253,30 +266,31 @@ void DisplayServerIOS::perform_event(const Ref<InputEvent> &p_event) {
 	Input::get_singleton()->parse_input_event(p_event);
 }
 
-void DisplayServerIOS::touches_canceled(int p_idx) {
-	touch_press(p_idx, -1, -1, false, false);
+void DisplayServerIOS::touches_canceled(int p_idx, DisplayServer::WindowID p_window) {
+	touch_press(p_idx, -1, -1, false, false, p_window);
 }
 
 // MARK: Keyboard
 
-void DisplayServerIOS::key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, NSInteger p_modifier, bool p_pressed) {
+void DisplayServerIOS::key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID window) {
 	Ref<InputEventKey> ev;
 	ev.instantiate();
+	ev->set_window_id(window);
 	ev->set_echo(false);
 	ev->set_pressed(p_pressed);
 	ev->set_keycode(fix_keycode(p_char, p_key));
 	if (@available(iOS 13.4, *)) {
 		if (p_key != Key::SHIFT) {
-			ev->set_shift_pressed(p_modifier & UIKeyModifierShift);
+			ev->set_shift_pressed(p_modifier & KEY_MASK_SHIFT);
 		}
 		if (p_key != Key::CTRL) {
-			ev->set_ctrl_pressed(p_modifier & UIKeyModifierControl);
+			ev->set_ctrl_pressed(p_modifier & KEY_MASK_CTRL);
 		}
 		if (p_key != Key::ALT) {
-			ev->set_alt_pressed(p_modifier & UIKeyModifierAlternate);
+			ev->set_alt_pressed(p_modifier & KEY_MASK_ALT);
 		}
 		if (p_key != Key::META) {
-			ev->set_meta_pressed(p_modifier & UIKeyModifierCommand);
+			ev->set_meta_pressed(p_modifier & KEY_MASK_META);
 		}
 	}
 	ev->set_key_label(p_unshifted);

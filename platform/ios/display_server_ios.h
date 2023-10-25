@@ -70,9 +70,10 @@ class DisplayServerIOS : public DisplayServer {
 
 	ObjectID window_attached_instance_id;
 
+	HashMap<WindowID, Callable> input_event_callbacks;
+
 	Callable window_event_callback;
 	Callable window_resize_callback;
-	Callable input_event_callback;
 	Callable input_text_callback;
 
 	int virtual_keyboard_height = 0;
@@ -115,13 +116,14 @@ public:
 
 	// MARK: Touches and Apple Pencil
 
-	void touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click);
-	void touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt);
-	void touches_canceled(int p_idx);
+	virtual void touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window) override;
+	virtual void touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window) override;
+	virtual void touches_canceled(int p_idx, DisplayServer::WindowID p_window) override;
 
 	// MARK: Keyboard
 
-	void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, NSInteger p_modifier, bool p_pressed);
+	virtual void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window) override;
+
 	bool is_keyboard_active() const;
 
 	// MARK: Motion

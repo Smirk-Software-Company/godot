@@ -536,6 +536,13 @@ public:
 	virtual void set_native_icon(const String &p_filename);
 	virtual void set_icon(const Ref<Image> &p_icon);
 
+	virtual void touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window);
+	virtual void touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window);
+	virtual void touches_canceled(int p_idx, DisplayServer::WindowID p_window);
+	virtual void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window);
+
+	bool is_keyboard_active() const;
+
 	enum Context {
 		CONTEXT_EDITOR,
 		CONTEXT_PROJECTMAN,
