@@ -181,12 +181,12 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 #if defined(VULKAN_ENABLED)
 	if (rendering_driver == "vulkan") {
 		ERR_FAIL_COND_V(p_native_handle == nullptr, INVALID_WINDOW_ID);
-		CALayer *layer = (CALayer *)p_native_handle;
+		CALayer *layer = CFBridgingRelease(p_native_handle);
 
 		WindowID window_id = window_id_counter++;
 		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
-		if (context_vulkan->window_create(window_id, false, layer, size.width, size.height) != OK) {
-			ERR_FAIL_MSG_V("Failed to create Vulkan window.", INVALID_WINDOW_ID);
+		if (context_vulkan->window_create(window_id, DisplayServer::VSyncMode::VSYNC_DISABLED, layer, size.width, size.height) != OK) {
+			ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create Vulkan window.");
 		}
 		return window_id;
 	}
@@ -194,11 +194,11 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 
 #if defined(GLES3_ENABLED)
 	if (rendering_driver == "opengl3") {
-		ERR_FAIL_MSG_V("wrap_external_window does not support opengl3.", INVALID_WINDOW_ID);
+		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "wrap_external_window does not support opengl3.");
 	}
 #endif
 
-	ERR_FAIL_MSG_V("Unknown rendering driver.", INVALID_WINDOW_ID);
+	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Unknown rendering driver.");
 }
 
 void DisplayServerIOS::_dispatch_input_events(const Ref<InputEvent> &p_event) {
@@ -214,7 +214,7 @@ void DisplayServerIOS::send_input_event(const Ref<InputEvent> &p_event) const {
 		}
 	} else {
 		// Send to all windows.
-		for (KeyValue<WindowID, Callable> &E : input_event_callbacks) {
+		for (const KeyValue<WindowID, Callable> &E : input_event_callbacks) {
 			_window_callback(E.value, p_event);
 		}
 	}
@@ -242,7 +242,7 @@ void DisplayServerIOS::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, 
 	Ref<InputEventScreenTouch> ev;
 	ev.instantiate();
 
-	ev->set_window_id(window);
+	ev->set_window_id(p_window);
 	ev->set_index(p_idx);
 	ev->set_pressed(p_pressed);
 	ev->set_position(Vector2(p_x, p_y));
@@ -253,7 +253,7 @@ void DisplayServerIOS::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, 
 void DisplayServerIOS::touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window) {
 	Ref<InputEventScreenDrag> ev;
 	ev.instantiate();
-	ev->set_window_id(window);
+	ev->set_window_id(p_window);
 	ev->set_index(p_idx);
 	ev->set_pressure(p_pressure);
 	ev->set_tilt(p_tilt);
@@ -281,16 +281,16 @@ void DisplayServerIOS::key(Key p_key, char32_t p_char, Key p_unshifted, Key p_ph
 	ev->set_keycode(fix_keycode(p_char, p_key));
 	if (@available(iOS 13.4, *)) {
 		if (p_key != Key::SHIFT) {
-			ev->set_shift_pressed(p_modifier & KEY_MASK_SHIFT);
+			ev->set_shift_pressed(p_modifiers.has_flag(KeyModifierMask::SHIFT));
 		}
 		if (p_key != Key::CTRL) {
-			ev->set_ctrl_pressed(p_modifier & KEY_MASK_CTRL);
+			ev->set_ctrl_pressed(p_modifiers.has_flag(KeyModifierMask::CTRL));
 		}
 		if (p_key != Key::ALT) {
-			ev->set_alt_pressed(p_modifier & KEY_MASK_ALT);
+			ev->set_alt_pressed(p_modifiers.has_flag(KeyModifierMask::ALT));
 		}
 		if (p_key != Key::META) {
-			ev->set_meta_pressed(p_modifier & KEY_MASK_META);
+			ev->set_meta_pressed(p_modifiers.has_flag(KeyModifierMask::META));
 		}
 	}
 	ev->set_key_label(p_unshifted);
