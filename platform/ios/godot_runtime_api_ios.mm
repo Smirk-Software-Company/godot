@@ -13,7 +13,7 @@ static OS_IOS *os = nullptr;
 
 void godot_register_extension_library(const char* p_library_name, GDExtensionInitializationFunction p_init_function){
     String library_name = p_library_name;
-    GDExtensionManager::register_custom_extension(library_name, p_init_function);
+    GDExtensionManager::register_direct_extension(library_name, p_init_function);
 }
 
 int godot_load_engine(int argc, char** argv) {
