@@ -32,10 +32,10 @@
 
 #ifdef IOS_ENABLED
 
-#import "app_delegate.h"
+// #import "app_delegate.h"
 #import "display_server_ios.h"
-#import "godot_view.h"
-#import "view_controller.h"
+// #import "godot_view.h"
+// #import "view_controller.h"
 
 #include "core/config/project_settings.h"
 #include "core/io/dir_access.h"
@@ -120,9 +120,10 @@ OS_IOS::OS_IOS() {
 OS_IOS::~OS_IOS() {}
 
 void OS_IOS::alert(const String &p_alert, const String &p_title) {
-	const CharString utf8_alert = p_alert.utf8();
-	const CharString utf8_title = p_title.utf8();
-	iOS::alert(utf8_alert.get_data(), utf8_title.get_data());
+	// Disabled for embedding
+	// const CharString utf8_alert = p_alert.utf8();
+	// const CharString utf8_title = p_title.utf8();
+	// iOS::alert(utf8_alert.get_data(), utf8_title.get_data());
 }
 
 void OS_IOS::initialize_core() {
@@ -134,20 +135,22 @@ void OS_IOS::initialize() {
 }
 
 void OS_IOS::initialize_modules() {
-	ios = memnew(iOS);
-	Engine::get_singleton()->add_singleton(Engine::Singleton("iOS", ios));
+	// Disabled for embedding
+	// ios = memnew(iOS);
+	// Engine::get_singleton()->add_singleton(Engine::Singleton("iOS", ios));
 
-	joypad_ios = memnew(JoypadIOS);
+	// joypad_ios = memnew(JoypadIOS);
 }
 
 void OS_IOS::deinitialize_modules() {
-	if (joypad_ios) {
-		memdelete(joypad_ios);
-	}
+	// Disabled for embedding
+	// if (joypad_ios) {
+	// 	memdelete(joypad_ios);
+	// }
 
-	if (ios) {
-		memdelete(ios);
-	}
+	// if (ios) {
+	// 	memdelete(ios);
+	// }
 }
 
 void OS_IOS::set_main_loop(MainLoop *p_main_loop) {
@@ -186,9 +189,10 @@ bool OS_IOS::iterate() {
 void OS_IOS::start() {
 	Main::start();
 
-	if (joypad_ios) {
-		joypad_ios->start_processing();
-	}
+	// Disabled for embedding
+	// if (joypad_ios) {
+	// 	joypad_ios->start_processing();
+	// }
 }
 
 void OS_IOS::finalize() {
@@ -298,10 +302,11 @@ String OS_IOS::get_version() const {
 }
 
 String OS_IOS::get_model_name() const {
-	String model = ios->get_model();
-	if (model != "") {
-		return model;
-	}
+	// Disabled for embedding
+	// String model = ios->get_model();
+	// if (model != "") {
+	// 	return model;
+	// }
 
 	return OS_Unix::get_model_name();
 }
@@ -575,12 +580,13 @@ String OS_IOS::get_system_font_path(const String &p_font_name, int p_weight, int
 }
 
 void OS_IOS::vibrate_handheld(int p_duration_ms) {
-	if (ios->supports_haptic_engine()) {
-		ios->vibrate_haptic_engine((float)p_duration_ms / 1000.f);
-	} else {
-		// iOS <13 does not support duration for vibration
-		AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
-	}
+	// Disabled for embedding
+	// if (ios->supports_haptic_engine()) {
+	// 	ios->vibrate_haptic_engine((float)p_duration_ms / 1000.f);
+	// } else {
+	// 	// iOS <13 does not support duration for vibration
+	// 	AudioServicesPlaySystemSound(kSystemSoundID_Vibrate);
+	// }
 }
 
 bool OS_IOS::_check_internal_feature_support(const String &p_feature) {
@@ -602,7 +608,8 @@ void OS_IOS::on_focus_out() {
 			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT, DisplayServer::MAIN_WINDOW_ID);
 		}
 
-		[AppDelegate.viewController.godotView stopRendering];
+		// Disabled for embedding
+		// [AppDelegate.viewController.godotView stopRendering];
 
 		audio_driver.stop();
 	}
@@ -616,7 +623,8 @@ void OS_IOS::on_focus_in() {
 			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN, DisplayServer::MAIN_WINDOW_ID);
 		}
 
-		[AppDelegate.viewController.godotView startRendering];
+		// Disabled for embedding
+		// [AppDelegate.viewController.godotView startRendering];
 
 		audio_driver.start();
 	}

@@ -31,13 +31,7 @@
 #import "display_server_ios.h"
 
 #import "device_metrics.h"
-#import "godot_view.h"
-#import "ios.h"
-#import "key_mapping_ios.h"
-#import "keyboard_input_view.h"
 #import "os_ios.h"
-#import "tts_ios.h"
-#import "view_controller.h"
 
 #include "core/config/project_settings.h"
 #include "core/io/file_access_pack.h"
@@ -51,15 +45,8 @@ DisplayServerIOS *DisplayServerIOS::get_singleton() {
 }
 
 DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
-	KeyMappingIOS::initialize();
 
 	rendering_driver = p_rendering_driver;
-
-	// Init TTS
-	bool tts_enabled = GLOBAL_GET("audio/general/text_to_speech");
-	if (tts_enabled) {
-		tts = [[TTS_IOS alloc] init];
-	}
 
 #if defined(VULKAN_ENABLED)
 	context_vulkan = nullptr;
@@ -347,38 +334,48 @@ String DisplayServerIOS::get_name() const {
 }
 
 bool DisplayServerIOS::tts_is_speaking() const {
-	ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	return [tts isSpeaking];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// return [tts isSpeaking];
+	return false;
 }
 
 bool DisplayServerIOS::tts_is_paused() const {
-	ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	return [tts isPaused];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_V_MSG(tts, false, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// return [tts isPaused];
+	return false;
 }
 
 TypedArray<Dictionary> DisplayServerIOS::tts_get_voices() const {
-	ERR_FAIL_NULL_V_MSG(tts, TypedArray<Dictionary>(), "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	return [tts getVoices];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_V_MSG(tts, TypedArray<Dictionary>(), "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// return [tts getVoices];
+	return TypedArray<Dictionary>();
 }
 
 void DisplayServerIOS::tts_speak(const String &p_text, const String &p_voice, int p_volume, float p_pitch, float p_rate, int p_utterance_id, bool p_interrupt) {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	[tts speak:p_text voice:p_voice volume:p_volume pitch:p_pitch rate:p_rate utterance_id:p_utterance_id interrupt:p_interrupt];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// [tts speak:p_text voice:p_voice volume:p_volume pitch:p_pitch rate:p_rate utterance_id:p_utterance_id interrupt:p_interrupt];
 }
 
 void DisplayServerIOS::tts_pause() {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	[tts pauseSpeaking];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// [tts pauseSpeaking];
 }
 
 void DisplayServerIOS::tts_resume() {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	[tts resumeSpeaking];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// [tts resumeSpeaking];
 }
 
 void DisplayServerIOS::tts_stop() {
-	ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
-	[tts stopSpeaking];
+	// Disabled for embedding
+	// ERR_FAIL_NULL_MSG(tts, "Enable the \"audio/general/text_to_speech\" project setting to use text-to-speech.");
+	// [tts stopSpeaking];
 }
 
 bool DisplayServerIOS::is_dark_mode_supported() const {
@@ -636,24 +633,31 @@ int DisplayServerIOS::virtual_keyboard_get_height() const {
 }
 
 void DisplayServerIOS::clipboard_set(const String &p_text) {
-	[UIPasteboard generalPasteboard].string = [NSString stringWithUTF8String:p_text.utf8()];
+	// Disabled for embedding
+	// [UIPasteboard generalPasteboard].string = [NSString stringWithUTF8String:p_text.utf8()];
 }
 
 String DisplayServerIOS::clipboard_get() const {
-	NSString *text = [UIPasteboard generalPasteboard].string;
+	// Disabled for embedding
+	// NSString *text = [UIPasteboard generalPasteboard].string;
 
-	return String::utf8([text UTF8String]);
+	// return String::utf8([text UTF8String]);
+	return String();
 }
 
 void DisplayServerIOS::screen_set_keep_on(bool p_enable) {
-	[UIApplication sharedApplication].idleTimerDisabled = p_enable;
+	// Disabled for embedding
+	// [UIApplication sharedApplication].idleTimerDisabled = p_enable;
 }
 
 bool DisplayServerIOS::screen_is_kept_on() const {
-	return [UIApplication sharedApplication].idleTimerDisabled;
+	// Disabled for embedding
+	// return [UIApplication sharedApplication].idleTimerDisabled;
+	return false;
 }
 
 void DisplayServerIOS::resize_window(CGSize viewSize) {
+// Disabled for embedding
 //	Size2i size = Size2i(viewSize.width, viewSize.height) * screen_get_max_scale();
 //
 //#if defined(VULKAN_ENABLED)

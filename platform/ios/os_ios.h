@@ -33,8 +33,9 @@
 
 #ifdef IOS_ENABLED
 
-#import "ios.h"
-#import "joypad_ios.h"
+// Disabled for embedding
+// #import "ios.h"
+// #import "joypad_ios.h"
 
 #import "drivers/coreaudio/audio_driver_coreaudio.h"
 #include "drivers/unix/os_unix.h"
@@ -54,9 +55,9 @@ private:
 
 	AudioDriverCoreAudio audio_driver;
 
-	iOS *ios = nullptr;
+	// iOS *ios = nullptr;
 
-	JoypadIOS *joypad_ios = nullptr;
+	// JoypadIOS *joypad_ios = nullptr;
 
 	MainLoop *main_loop = nullptr;
 

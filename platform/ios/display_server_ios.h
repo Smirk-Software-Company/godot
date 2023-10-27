@@ -64,7 +64,8 @@ class DisplayServerIOS : public DisplayServer {
 	RenderingDeviceVulkan *rendering_device_vulkan = nullptr;
 #endif
 
-	id tts = nullptr;
+	// Disabled for embedding
+	// id tts = nullptr;
 
 	DisplayServer::ScreenOrientation screen_orientation;
 

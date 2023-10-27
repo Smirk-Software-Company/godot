@@ -27,6 +27,7 @@ void godot_register_extension_library(const char* p_library_name, GDExtensionIni
 int godot_load_engine(int argc, char** argv) {
     os = new OS_IOS();
     
+    
     // We must override main when testing is enabled
     TEST_MAIN_OVERRIDE
 
