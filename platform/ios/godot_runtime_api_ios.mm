@@ -11,6 +11,14 @@
 
 static OS_IOS *os = nullptr;
 
+void godot_ios_plugins_initialize() {
+
+}
+
+void godot_ios_plugins_deinitialize() {
+    
+}
+
 void godot_register_extension_library(const char* p_library_name, GDExtensionInitializationFunction p_init_function){
     String library_name = p_library_name;
     GDExtensionManager::register_direct_extension(library_name, p_init_function);

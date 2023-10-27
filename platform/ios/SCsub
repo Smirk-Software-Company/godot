@@ -8,11 +8,6 @@ common_ios_lib_files = [
     "display_server_ios.mm",
     "display_layer.mm",
     "device_metrics.m",
-]
-
-ios_lib_files = [
-    "godot_ios.mm",
-    "main.m",
     "app_delegate.mm",
     "view_controller.mm",
     "ios.mm",
@@ -23,6 +18,11 @@ ios_lib_files = [
     "godot_view_renderer.mm",
     "keyboard_input_view.mm",
     "key_mapping_ios.mm",
+    "godot_ios.mm",
+]
+
+ios_lib_files = [
+    "main.m",
 ]
 
 ios_shared_lib_files = [
@@ -35,19 +35,18 @@ env_ios = env.Clone()
 env_ios.Append(CCFLAGS=["-fmodules", "-fcxx-modules"])
 
 if env["shared_library"]:
-    ios_lib = env_ios.add_shared_library("#bin/libgodot" + env_ios["LIBSUFFIX"], common_ios_lib_files + ios_shared_lib_files)
-
+    ios_lib = env_ios.add_library("ios", common_ios_lib_files + ios_shared_lib_files)
 else:
     ios_lib = env_ios.add_library("ios", common_ios_lib_files + ios_lib_files)
 
-    def combine_libs(target=None, source=None, env=None):
-        lib_path = target[0].srcnode().abspath
-        if "osxcross" in env:
-            libtool = "$IOS_TOOLCHAIN_PATH/usr/bin/${ios_triple}libtool"
-        else:
-            libtool = "$IOS_TOOLCHAIN_PATH/usr/bin/libtool"
-        env.Execute(
-            libtool + ' -static -o "' + lib_path + '" ' + " ".join([('"' + lib.srcnode().abspath + '"') for lib in source])
-        )
+def combine_libs(target=None, source=None, env=None):
+    lib_path = target[0].srcnode().abspath
+    if "osxcross" in env:
+        libtool = "$IOS_TOOLCHAIN_PATH/usr/bin/${ios_triple}libtool"
+    else:
+        libtool = "$IOS_TOOLCHAIN_PATH/usr/bin/libtool"
+    env.Execute(
+        libtool + ' -static -a -o "' + lib_path + '" ' + " ".join([('"' + lib.srcnode().abspath + '"') for lib in source])
+    )
 
-    combine_command = env_ios.Command("#bin/libgodot" + env_ios["LIBSUFFIX"], [ios_lib] + env_ios["LIBS"], combine_libs)
+combine_command = env_ios.Command("#bin/libgodot" + env_ios["LIBSUFFIX"], [ios_lib] + env_ios["LIBS"], combine_libs)
