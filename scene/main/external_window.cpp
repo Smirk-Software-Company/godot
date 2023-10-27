@@ -7,14 +7,14 @@ void ExternalWindow::set_visible(bool p_visible) {
 	WARN_PRINT("Cannot set visibility of ExternalWindow");
 }
 
-void ExternalWindow::init_from_native(uint64_t p_handle) {
-	handle = reinterpret_cast<void*>(p_handle);
+void ExternalWindow::init_from_native(uint64_t p_native_window_handle) {
+	native_window_handle = reinterpret_cast<void*>(p_native_window_handle);
 }
 
 void ExternalWindow::_notification(int p_what) {
 	ERR_MAIN_THREAD_GUARD;
 	if (p_what == NOTIFICATION_ENTER_TREE) {
-		window_id = DisplayServer::get_singleton()->wrap_external_window(handle);
+		window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
 		notification(NOTIFICATION_VISIBILITY_CHANGED);
 		emit_signal(SceneStringNames::get_singleton()->visibility_changed);
 		RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
@@ -29,7 +29,7 @@ void ExternalWindow::_notification(int p_what) {
 }
 
 void ExternalWindow::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("init_from_native", "handle"), &ExternalWindow::init_from_native);
+	ClassDB::bind_method(D_METHOD("init_from_native", "native_window_handle"), &ExternalWindow::init_from_native);
 }
 
 ExternalWindow::ExternalWindow() {
