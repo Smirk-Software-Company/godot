@@ -30,7 +30,6 @@
 
 #import "display_server_ios.h"
 
-#import "app_delegate.h"
 #import "device_metrics.h"
 #import "godot_view.h"
 #import "ios.h"
@@ -74,19 +73,7 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 			ERR_FAIL_MSG("Failed to initialize Vulkan context");
 		}
 
-		CALayer *layer = [AppDelegate.viewController.godotView initializeRenderingForDriver:@"vulkan"];
-
-		if (!layer) {
-			ERR_FAIL_MSG("Failed to create iOS Vulkan rendering layer.");
-		}
-
-		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
-		if (context_vulkan->window_create(MAIN_WINDOW_ID, p_vsync_mode, layer, size.width, size.height) != OK) {
-			memdelete(context_vulkan);
-			context_vulkan = nullptr;
-			r_error = ERR_UNAVAILABLE;
-			ERR_FAIL_MSG("Failed to create Vulkan window.");
-		}
+		layers = [[NSMutableDictionary<NSNumber*, CALayer*> alloc] init];
 
 		rendering_device_vulkan = memnew(RenderingDeviceVulkan);
 		rendering_device_vulkan->initialize(context_vulkan);
@@ -97,12 +84,6 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 
 #if defined(GLES3_ENABLED)
 	if (rendering_driver == "opengl3") {
-		CALayer *layer = [AppDelegate.viewController.godotView initializeRenderingForDriver:@"opengl3"];
-
-		if (!layer) {
-			ERR_FAIL_MSG("Failed to create iOS OpenGLES rendering layer.");
-		}
-
 		RasterizerGLES3::make_current(false);
 	}
 #endif
@@ -124,7 +105,6 @@ DisplayServerIOS::~DisplayServerIOS() {
 	}
 
 	if (context_vulkan) {
-		context_vulkan->window_destroy(MAIN_WINDOW_ID);
 		memdelete(context_vulkan);
 		context_vulkan = nullptr;
 	}
@@ -188,6 +168,8 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 		if (context_vulkan->window_create(window_id, DisplayServer::VSyncMode::VSYNC_DISABLED, layer, size.width, size.height) != OK) {
 			ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create Vulkan window.");
 		}
+		[layers setObject:layer forKey:[NSNumber numberWithInt:window_id]];
+		window_ids.insert(window_id);
 		return window_id;
 	}
 #endif
@@ -199,6 +181,12 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 #endif
 
 	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Unknown rendering driver.");
+}
+
+void DisplayServerIOS::release_external_window(DisplayServer::WindowID p_id) {
+	context_vulkan->window_destroy(p_id);
+	[layers removeObjectForKey:[NSNumber numberWithInt:p_id]];
+	window_ids.erase(p_id);
 }
 
 void DisplayServerIOS::_dispatch_input_events(const Ref<InputEvent> &p_event) {
@@ -342,12 +330,12 @@ bool DisplayServerIOS::has_feature(Feature p_feature) const {
 		// case FEATURE_NATIVE_DIALOG:
 		// case FEATURE_NATIVE_ICON:
 		// case FEATURE_WINDOW_TRANSPARENCY:
-		case FEATURE_CLIPBOARD:
+		// case FEATURE_CLIPBOARD:
 		case FEATURE_KEEP_SCREEN_ON:
 		case FEATURE_ORIENTATION:
 		case FEATURE_TOUCHSCREEN:
-		case FEATURE_VIRTUAL_KEYBOARD:
-		case FEATURE_TEXT_TO_SPEECH:
+		// case FEATURE_VIRTUAL_KEYBOARD:
+		// case FEATURE_TEXT_TO_SPEECH:
 			return true;
 		default:
 			return false;
@@ -410,15 +398,7 @@ bool DisplayServerIOS::is_dark_mode() const {
 }
 
 Rect2i DisplayServerIOS::get_display_safe_area() const {
-	UIEdgeInsets insets = UIEdgeInsetsZero;
-	UIView *view = AppDelegate.viewController.godotView;
-	if ([view respondsToSelector:@selector(safeAreaInsets)]) {
-		insets = [view safeAreaInsets];
-	}
-	float scale = screen_get_scale();
-	Size2i insets_position = Size2i(insets.left, insets.top) * scale;
-	Size2i insets_size = Size2i(insets.left + insets.right, insets.top + insets.bottom) * scale;
-	return Rect2i(screen_get_position() + insets_position, screen_get_size() - insets_size);
+	ERR_FAIL_V_MSG(Rect2i(), "Display safe area not supported in DisplayServerIOS");
 }
 
 int DisplayServerIOS::get_screen_count() const {
@@ -434,13 +414,7 @@ Point2i DisplayServerIOS::screen_get_position(int p_screen) const {
 }
 
 Size2i DisplayServerIOS::screen_get_size(int p_screen) const {
-	CALayer *layer = AppDelegate.viewController.godotView.renderingLayer;
-
-	if (!layer) {
-		return Size2i();
-	}
-
-	return Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_scale(p_screen);
+	ERR_FAIL_V_MSG(Size2i(), "Getting screen size not supported in DisplayServerIOS");
 }
 
 Rect2i DisplayServerIOS::screen_get_usable_rect(int p_screen) const {
@@ -493,31 +467,19 @@ float DisplayServerIOS::screen_get_scale(int p_screen) const {
 }
 
 Vector<DisplayServer::WindowID> DisplayServerIOS::get_window_list() const {
-	Vector<DisplayServer::WindowID> list;
-	list.push_back(MAIN_WINDOW_ID);
-	return list;
+	Vector<DisplayServer::WindowID> result;
+	for (const int& e : window_ids) {
+		result.push_back(e);
+	}
+	return result;
 }
 
 DisplayServer::WindowID DisplayServerIOS::get_window_at_screen_position(const Point2i &p_position) const {
-	return MAIN_WINDOW_ID;
+	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Window at screen position not supported by DisplayServerIOS");
 }
 
 int64_t DisplayServerIOS::window_get_native_handle(HandleType p_handle_type, WindowID p_window) const {
-	ERR_FAIL_COND_V(p_window != MAIN_WINDOW_ID, 0);
-	switch (p_handle_type) {
-		case DISPLAY_HANDLE: {
-			return 0; // Not supported.
-		}
-		case WINDOW_HANDLE: {
-			return (int64_t)AppDelegate.viewController;
-		}
-		case WINDOW_VIEW: {
-			return (int64_t)AppDelegate.viewController.godotView;
-		}
-		default: {
-			return 0;
-		}
-	}
+	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Window get native handle not supported by DisplayServerIOS");
 }
 
 void DisplayServerIOS::window_attach_instance_id(ObjectID p_instance, WindowID p_window) {
@@ -533,7 +495,7 @@ void DisplayServerIOS::window_set_title(const String &p_title, WindowID p_window
 }
 
 int DisplayServerIOS::window_get_current_screen(WindowID p_window) const {
-	return SCREEN_OF_MAIN_WINDOW;
+	return SCREEN_PRIMARY;
 }
 
 void DisplayServerIOS::window_set_current_screen(int p_screen, WindowID p_window) {
@@ -577,8 +539,9 @@ void DisplayServerIOS::window_set_size(const Size2i p_size, WindowID p_window) {
 }
 
 Size2i DisplayServerIOS::window_get_size(WindowID p_window) const {
-	CGRect screenBounds = [UIScreen mainScreen].bounds;
-	return Size2i(screenBounds.size.width, screenBounds.size.height) * screen_get_max_scale();
+	CALayer *layer = [layers objectForKey:[NSNumber numberWithInt:p_window]];
+	ERR_FAIL_NULL_V_MSG(layer, Size2i(), "Layer for Window ID not found");
+	return Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
 }
 
 Size2i DisplayServerIOS::window_get_size_with_decorations(WindowID p_window) const {
@@ -590,7 +553,7 @@ void DisplayServerIOS::window_set_mode(WindowMode p_mode, WindowID p_window) {
 }
 
 DisplayServer::WindowMode DisplayServerIOS::window_get_mode(WindowID p_window) const {
-	return WindowMode::WINDOW_MODE_FULLSCREEN;
+	return WindowMode::WINDOW_MODE_WINDOWED;
 }
 
 bool DisplayServerIOS::window_is_maximize_allowed(WindowID p_window) const {
@@ -618,16 +581,12 @@ bool DisplayServerIOS::window_is_focused(WindowID p_window) const {
 }
 
 float DisplayServerIOS::screen_get_max_scale() const {
-	return screen_get_scale(SCREEN_OF_MAIN_WINDOW);
+	return screen_get_scale(SCREEN_PRIMARY);
 }
 
 void DisplayServerIOS::screen_set_orientation(DisplayServer::ScreenOrientation p_orientation, int p_screen) {
 	screen_orientation = p_orientation;
-	if (@available(iOS 16.0, *)) {
-		[AppDelegate.viewController setNeedsUpdateOfSupportedInterfaceOrientations];
-	} else {
-		[UIViewController attemptRotationToDeviceOrientation];
-	}
+	[UIViewController attemptRotationToDeviceOrientation];
 }
 
 DisplayServer::ScreenOrientation DisplayServerIOS::screen_get_orientation(int p_screen) const {
@@ -657,53 +616,15 @@ _FORCE_INLINE_ int _convert_utf32_offset_to_utf16(const String &p_existing_text,
 }
 
 void DisplayServerIOS::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) {
-	NSString *existingString = [[NSString alloc] initWithUTF8String:p_existing_text.utf8().get_data()];
-
-	AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeDefault;
-	AppDelegate.viewController.keyboardView.textContentType = nil;
-	switch (p_type) {
-		case KEYBOARD_TYPE_DEFAULT: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeDefault;
-		} break;
-		case KEYBOARD_TYPE_MULTILINE: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeDefault;
-		} break;
-		case KEYBOARD_TYPE_NUMBER: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeNumberPad;
-		} break;
-		case KEYBOARD_TYPE_NUMBER_DECIMAL: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeDecimalPad;
-		} break;
-		case KEYBOARD_TYPE_PHONE: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypePhonePad;
-			AppDelegate.viewController.keyboardView.textContentType = UITextContentTypeTelephoneNumber;
-		} break;
-		case KEYBOARD_TYPE_EMAIL_ADDRESS: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeEmailAddress;
-			AppDelegate.viewController.keyboardView.textContentType = UITextContentTypeEmailAddress;
-		} break;
-		case KEYBOARD_TYPE_PASSWORD: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeDefault;
-			AppDelegate.viewController.keyboardView.textContentType = UITextContentTypePassword;
-		} break;
-		case KEYBOARD_TYPE_URL: {
-			AppDelegate.viewController.keyboardView.keyboardType = UIKeyboardTypeWebSearch;
-			AppDelegate.viewController.keyboardView.textContentType = UITextContentTypeURL;
-		} break;
-	}
-
-	[AppDelegate.viewController.keyboardView
-			becomeFirstResponderWithString:existingString
-							   cursorStart:_convert_utf32_offset_to_utf16(p_existing_text, p_cursor_start)
-								 cursorEnd:_convert_utf32_offset_to_utf16(p_existing_text, p_cursor_end)];
+	ERR_FAIL_MSG("Virtual keyboard show not supported by DisplayServerIOS");
 }
 
 bool DisplayServerIOS::is_keyboard_active() const {
-	return [AppDelegate.viewController.keyboardView isFirstResponder];
+	return false;
 }
 
 void DisplayServerIOS::virtual_keyboard_hide() {
-	[AppDelegate.viewController.keyboardView resignFirstResponder];
+	ERR_FAIL_MSG("Virtual keyboard hide not supported by DisplayServerIOS");
 }
 
 void DisplayServerIOS::virtual_keyboard_set_height(int height) {
@@ -733,16 +654,16 @@ bool DisplayServerIOS::screen_is_kept_on() const {
 }
 
 void DisplayServerIOS::resize_window(CGSize viewSize) {
-	Size2i size = Size2i(viewSize.width, viewSize.height) * screen_get_max_scale();
-
-#if defined(VULKAN_ENABLED)
-	if (context_vulkan) {
-		context_vulkan->window_resize(MAIN_WINDOW_ID, size.x, size.y);
-	}
-#endif
-
-	Variant resize_rect = Rect2i(Point2i(), size);
-	_window_callback(window_resize_callback, resize_rect);
+//	Size2i size = Size2i(viewSize.width, viewSize.height) * screen_get_max_scale();
+//
+//#if defined(VULKAN_ENABLED)
+//	if (context_vulkan) {
+//		context_vulkan->window_resize(MAIN_WINDOW_ID, size.x, size.y);
+//	}
+//#endif
+//
+//	Variant resize_rect = Rect2i(Point2i(), size);
+//	_window_callback(window_resize_callback, resize_rect);
 }
 
 void DisplayServerIOS::window_set_vsync_mode(DisplayServer::VSyncMode p_vsync_mode, WindowID p_window) {

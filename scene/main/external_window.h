@@ -13,6 +13,7 @@ public:
 	virtual void set_visible(bool p_visible) override;
 
 	void init_from_native(uint64_t p_native_window_handle);
+	void release_native();
 
 	void _notification(int p_what);
 	static void _bind_methods();
