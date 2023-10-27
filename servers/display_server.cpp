@@ -597,6 +597,11 @@ void DisplayServer::key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physi
 	WARN_PRINT("Key press not supported by this display server.");
 }
 
+void DisplayServer::send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred) const {
+	WARN_PRINT("Send window event not supported by this display server.");
+}
+
+
 int64_t DisplayServer::window_get_native_handle(HandleType p_handle_type, WindowID p_window) const {
 	WARN_PRINT("Native handle not supported by this display server.");
 	return 0;
@@ -837,6 +842,8 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("touch_drag", "idx", "prev_x", "prev_y", "x", "y", "pressure", "tilt", "window"), &DisplayServer::touch_drag);
 	ClassDB::bind_method(D_METHOD("touches_canceled", "idx", "window"), &DisplayServer::touches_canceled);
 	ClassDB::bind_method(D_METHOD("key", "key", "char", "unshifted", "physical", "modifiers", "pressed", "window"), &DisplayServer::key);
+
+	ClassDB::bind_method(D_METHOD("send_window_event", "event", "window", "deferred"), &DisplayServer::send_window_event);
 
 	BIND_ENUM_CONSTANT(FEATURE_GLOBAL_MENU);
 	BIND_ENUM_CONSTANT(FEATURE_SUBWINDOWS);

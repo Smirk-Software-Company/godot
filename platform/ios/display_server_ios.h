@@ -71,8 +71,8 @@ class DisplayServerIOS : public DisplayServer {
 	ObjectID window_attached_instance_id;
 
 	HashMap<WindowID, Callable> input_event_callbacks;
+	HashMap<WindowID, Callable> window_event_callbacks;
 
-	Callable window_event_callback;
 	Callable window_resize_callback;
 	Callable input_text_callback;
 
@@ -109,8 +109,8 @@ public:
 	static void _dispatch_input_events(const Ref<InputEvent> &p_event);
 	void send_input_event(const Ref<InputEvent> &p_event) const;
 	void send_input_text(const String &p_text) const;
-	void send_window_event(DisplayServer::WindowEvent p_event) const;
-	void _window_callback(const Callable &p_callable, const Variant &p_arg) const;
+	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const override;
+	void _window_callback(const Callable &p_callable, const Variant &p_arg, bool p_deferred = false) const;
 
 	// MARK: - Input
 

@@ -599,7 +599,7 @@ void OS_IOS::on_focus_out() {
 		is_focused = false;
 
 		if (DisplayServerIOS::get_singleton()) {
-			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT);
+			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT, DisplayServer::MAIN_WINDOW_ID);
 		}
 
 		[AppDelegate.viewController.godotView stopRendering];
@@ -613,7 +613,7 @@ void OS_IOS::on_focus_in() {
 		is_focused = true;
 
 		if (DisplayServerIOS::get_singleton()) {
-			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN);
+			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN, DisplayServer::MAIN_WINDOW_ID);
 		}
 
 		[AppDelegate.viewController.godotView startRendering];

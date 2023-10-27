@@ -159,7 +159,7 @@ void DisplayServerIOS::window_set_rect_changed_callback(const Callable &p_callab
 }
 
 void DisplayServerIOS::window_set_window_event_callback(const Callable &p_callable, WindowID p_window) {
-	window_event_callback = p_callable;
+	window_event_callbacks[p_window] = p_callable;
 }
 void DisplayServerIOS::window_set_input_event_callback(const Callable &p_callable, WindowID p_window) {
 	input_event_callbacks[p_window] = p_callable;
@@ -224,13 +224,17 @@ void DisplayServerIOS::send_input_text(const String &p_text) const {
 	_window_callback(input_text_callback, p_text);
 }
 
-void DisplayServerIOS::send_window_event(DisplayServer::WindowEvent p_event) const {
-	_window_callback(window_event_callback, int(p_event));
+void DisplayServerIOS::send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred) const {
+	_window_callback(window_event_callbacks[p_window], int(p_event), p_deferred);
 }
 
-void DisplayServerIOS::_window_callback(const Callable &p_callable, const Variant &p_arg) const {
+void DisplayServerIOS::_window_callback(const Callable &p_callable, const Variant &p_arg, bool p_deferred) const {
 	if (!p_callable.is_null()) {
-		p_callable.call(p_arg);
+		if (p_deferred) {
+			p_callable.call_deferred(p_arg);
+		} else {
+			p_callable.call(p_arg);
+		}
 	}
 }
 

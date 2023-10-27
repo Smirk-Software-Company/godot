@@ -150,7 +150,7 @@
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
 	DisplayServerMacOS *ds = (DisplayServerMacOS *)DisplayServer::get_singleton();
 	if (ds) {
-		ds->send_window_event(ds->get_window(DisplayServerMacOS::MAIN_WINDOW_ID), DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST);
+		ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST, DisplayServerMacOS::MAIN_WINDOW_ID);
 	}
 	return NSTerminateCancel;
 }

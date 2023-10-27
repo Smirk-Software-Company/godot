@@ -541,6 +541,8 @@ public:
 	virtual void touches_canceled(int p_idx, DisplayServer::WindowID p_window);
 	virtual void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window);
 
+	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const;
+
 	bool is_keyboard_active() const;
 
 	enum Context {

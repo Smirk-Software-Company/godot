@@ -323,12 +323,12 @@ void OS_Android::main_loop_end() {
 }
 
 void OS_Android::main_loop_focusout() {
-	DisplayServerAndroid::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT);
+	DisplayServerAndroid::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT, DisplayServer::MAIN_WINDOW_ID);
 	audio_driver_android.set_pause(true);
 }
 
 void OS_Android::main_loop_focusin() {
-	DisplayServerAndroid::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN);
+	DisplayServerAndroid::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN, DisplayServer::MAIN_WINDOW_ID);
 	audio_driver_android.set_pause(false);
 }
 

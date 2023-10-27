@@ -239,7 +239,7 @@ public:
 	WindowData &get_window(WindowID p_window);
 
 	void send_event(NSEvent *p_event);
-	void send_window_event(const WindowData &p_wd, WindowEvent p_event);
+	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const override;
 	void release_pressed_events();
 	void get_key_modifier_state(unsigned int p_macos_state, Ref<InputEventWithModifiers> r_state) const;
 	void update_mouse_pos(WindowData &p_wd, NSPoint p_location_in_window);

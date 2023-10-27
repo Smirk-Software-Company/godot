@@ -317,7 +317,7 @@ void DisplayServerAndroid::_window_callback(const Callable &p_callable, const Va
 	}
 }
 
-void DisplayServerAndroid::send_window_event(DisplayServer::WindowEvent p_event, bool p_deferred) const {
+void DisplayServerAndroid::send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred) const {
 	_window_callback(window_event_callback, int(p_event), p_deferred);
 }
 
