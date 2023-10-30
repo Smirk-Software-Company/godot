@@ -2756,7 +2756,7 @@ String Main::get_rendering_driver_name() {
 // everything the main loop needs to know about frame timings
 static MainTimerSync main_timer_sync;
 
-bool Main::start() {
+bool Main::start(uint64_t native_window_handle) {
 	ERR_FAIL_COND_V(!_start_success, false);
 
 	bool has_icon = false;
@@ -3106,6 +3106,7 @@ bool Main::start() {
 		Window* window = memnew(Window);
 		window->set_name("root");
 		window->set_title(GLOBAL_GET("application/config/name"));
+		window->init_from_native(native_window_handle);
 		sml->init_with_root(window);
 	}
 

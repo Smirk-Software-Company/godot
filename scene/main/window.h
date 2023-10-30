@@ -137,6 +137,8 @@ private:
 
 	bool auto_translate = true;
 
+	void* native_window_handle = nullptr;
+
 	void _update_child_controls();
 	void _update_embedded_window();
 
@@ -269,6 +271,9 @@ public:
 
 	void set_current_screen(int p_screen);
 	int get_current_screen() const;
+
+	void init_from_native(uint64_t p_native_window_handle);
+	void release_native();
 
 	void set_position(const Point2i &p_position);
 	Point2i get_position() const;

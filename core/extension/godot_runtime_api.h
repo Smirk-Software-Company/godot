@@ -15,7 +15,7 @@ extern "C" {
 
 typedef void(*godot_register_extension_library_func)(const char*, GDExtensionInitializationFunction);
 typedef int(*godot_load_engine_func)(int, char**);
-typedef int(*godot_start_engine_func)();
+typedef int(*godot_start_engine_func)(uint64_t);
 typedef int(*godot_iterate_engine_func)();
 typedef int(*godot_shutdown_engine_func)();
 

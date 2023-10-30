@@ -39,8 +39,8 @@ int godot_load_engine(int argc, char** argv) {
     return GODOT_OK;
 }
 
-int godot_start_engine() {
-    if (Main::start()) {
+int godot_start_engine(uint64_t native_window_handle) {
+    if (Main::start(native_window_handle)) {
         OS::get_singleton()->get_main_loop()->initialize();
         return GODOT_OK;
     } else {

@@ -140,7 +140,6 @@
 #include "scene/main/timer.h"
 #include "scene/main/viewport.h"
 #include "scene/main/window.h"
-#include "scene/main/external_window.h"
 #include "scene/resources/animated_texture.h"
 #include "scene/resources/animation_library.h"
 #include "scene/resources/atlas_texture.h"
@@ -350,7 +349,6 @@ void register_scene_types() {
 	GDREGISTER_CLASS(CanvasModulate);
 	GDREGISTER_CLASS(ResourcePreloader);
 	GDREGISTER_CLASS(Window);
-	GDREGISTER_CLASS(ExternalWindow);
 
 	/* REGISTER GUI */
 

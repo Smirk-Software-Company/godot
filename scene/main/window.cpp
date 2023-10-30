@@ -774,6 +774,10 @@ void Window::set_visible(bool p_visible) {
 		return;
 	}
 
+	if (native_window_handle) {
+		return;
+	}
+
 	if (!is_inside_tree()) {
 		visible = p_visible;
 		return;
@@ -1194,72 +1198,83 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
-			bool embedded = false;
-			{
-				embedder = get_embedder();
-				if (embedder) {
-					embedded = true;
-					if (!visible) {
-						embedder = nullptr; // Not yet since not visible.
-					}
+			if (native_window_handle) {
+				if (window_id == DisplayServer::INVALID_WINDOW_ID) {
+					window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
 				}
-			}
-
-			if (embedded) {
-				// Create as embedded.
-				if (embedder) {
-					if (initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE) {
-						position = (embedder->get_visible_rect().size - size) / 2;
-					}
-					embedder->_sub_window_register(this);
-					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_PARENT_VISIBLE);
-					_update_window_size();
-				}
-
-			} else {
-				if (!get_parent()) {
-					// It's the root window!
-					visible = true; // Always visible.
-					window_id = DisplayServer::MAIN_WINDOW_ID;
-					DisplayServer::get_singleton()->window_attach_instance_id(get_instance_id(), window_id);
-					_update_from_window();
-					// Since this window already exists (created on start), we must update pos and size from it.
-					{
-						position = DisplayServer::get_singleton()->window_get_position(window_id);
-						size = DisplayServer::get_singleton()->window_get_size(window_id);
-						focused = DisplayServer::get_singleton()->window_is_focused(window_id);
-					}
-					_update_window_size(); // Inform DisplayServer of minimum and maximum size.
-					_update_viewport_size(); // Then feed back to the viewport.
-					_update_window_callbacks();
-					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_VISIBLE);
-				} else {
-					// Create.
-					if (visible) {
-						_make_window();
-					}
-				}
-			}
-
-			if (transient) {
-				_make_transient();
-			}
-			if (visible) {
 				notification(NOTIFICATION_VISIBILITY_CHANGED);
 				emit_signal(SceneStringNames::get_singleton()->visibility_changed);
 				RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
-			}
+				// Emits NOTIFICATION_THEME_CHANGED internally.
+				set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
+			} else {
+				bool embedded = false;
+				{
+					embedder = get_embedder();
+					if (embedder) {
+						embedded = true;
+						if (!visible) {
+							embedder = nullptr; // Not yet since not visible.
+						}
+					}
+				}
 
-#ifdef TOOLS_ENABLED
-			if (is_part_of_edited_scene()) {
-				// Don't translate Windows on scene when inside editor.
-				set_message_translation(false);
-				notification(NOTIFICATION_TRANSLATION_CHANGED);
-			}
-#endif
+				if (embedded) {
+					// Create as embedded.
+					if (embedder) {
+						if (initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE) {
+							position = (embedder->get_visible_rect().size - size) / 2;
+						}
+						embedder->_sub_window_register(this);
+						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_PARENT_VISIBLE);
+						_update_window_size();
+					}
 
-			// Emits NOTIFICATION_THEME_CHANGED internally.
-			set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
+				} else {
+					if (!get_parent()) {
+						// It's the root window!
+						visible = true; // Always visible.
+						window_id = DisplayServer::MAIN_WINDOW_ID;
+						DisplayServer::get_singleton()->window_attach_instance_id(get_instance_id(), window_id);
+						_update_from_window();
+						// Since this window already exists (created on start), we must update pos and size from it.
+						{
+							position = DisplayServer::get_singleton()->window_get_position(window_id);
+							size = DisplayServer::get_singleton()->window_get_size(window_id);
+							focused = DisplayServer::get_singleton()->window_is_focused(window_id);
+						}
+						_update_window_size(); // Inform DisplayServer of minimum and maximum size.
+						_update_viewport_size(); // Then feed back to the viewport.
+						_update_window_callbacks();
+						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_VISIBLE);
+					} else {
+						// Create.
+						if (visible) {
+							_make_window();
+						}
+					}
+				}
+
+				if (transient) {
+					_make_transient();
+				}
+				if (visible) {
+					notification(NOTIFICATION_VISIBILITY_CHANGED);
+					emit_signal(SceneStringNames::get_singleton()->visibility_changed);
+					RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
+				}
+
+	#ifdef TOOLS_ENABLED
+				if (is_part_of_edited_scene()) {
+					// Don't translate Windows on scene when inside editor.
+					set_message_translation(false);
+					notification(NOTIFICATION_TRANSLATION_CHANGED);
+				}
+	#endif
+
+				// Emits NOTIFICATION_THEME_CHANGED internally.
+				set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
+			}
 		} break;
 
 		case NOTIFICATION_READY: {
@@ -1305,29 +1320,40 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_EXIT_TREE: {
-			set_theme_context(nullptr, false);
-
-			if (transient) {
-				_clear_transient();
-			}
-
-			if (!is_embedded() && window_id != DisplayServer::INVALID_WINDOW_ID) {
-				if (window_id == DisplayServer::MAIN_WINDOW_ID) {
-					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
-					_update_window_callbacks();
-				} else {
-					_clear_window();
+			if (native_window_handle) {
+				if (window_id == DisplayServer::INVALID_WINDOW_ID) {
+					window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
 				}
+				notification(NOTIFICATION_VISIBILITY_CHANGED);
+				emit_signal(SceneStringNames::get_singleton()->visibility_changed);
+				RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
+				// Emits NOTIFICATION_THEME_CHANGED internally.
+				set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
 			} else {
-				if (embedder) {
-					embedder->_sub_window_remove(this);
-					embedder = nullptr;
-					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
-				}
-				_update_viewport_size(); //called by clear and make, which does not happen here
-			}
+				set_theme_context(nullptr, false);
 
-			RS::get_singleton()->viewport_set_active(get_viewport_rid(), false);
+				if (transient) {
+					_clear_transient();
+				}
+
+				if (!is_embedded() && window_id != DisplayServer::INVALID_WINDOW_ID) {
+					if (window_id == DisplayServer::MAIN_WINDOW_ID) {
+						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
+						_update_window_callbacks();
+					} else {
+						_clear_window();
+					}
+				} else {
+					if (embedder) {
+						embedder->_sub_window_remove(this);
+						embedder = nullptr;
+						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
+					}
+					_update_viewport_size(); //called by clear and make, which does not happen here
+				}
+
+				RS::get_singleton()->viewport_set_active(get_viewport_rid(), false);
+			}
 		} break;
 
 		case NOTIFICATION_VP_MOUSE_ENTER: {
@@ -2647,6 +2673,16 @@ void Window::_mouse_leave_viewport() {
 		mouse_in_window = false;
 		_propagate_window_notification(this, NOTIFICATION_WM_MOUSE_EXIT);
 	}
+}
+
+void Window::init_from_native(uint64_t p_native_window_handle) {
+	native_window_handle = reinterpret_cast<void*>(p_native_window_handle);
+}
+
+void Window::release_native() {
+	ERR_FAIL_COND(window_id == DisplayServer::INVALID_WINDOW_ID);
+	DisplayServer::get_singleton()->release_external_window(window_id);
+	window_id = DisplayServer::INVALID_WINDOW_ID;
 }
 
 void Window::_bind_methods() {
