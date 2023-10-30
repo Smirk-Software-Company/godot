@@ -1642,8 +1642,10 @@ Error VulkanContext::_create_device() {
 Error VulkanContext::_initialize_queues(VkSurfaceKHR p_surface) {
 	// Iterate over each queue to learn whether it supports presenting:
 	VkBool32 *supportsPresent = (VkBool32 *)malloc(queue_family_count * sizeof(VkBool32));
-	for (uint32_t i = 0; i < queue_family_count; i++) {
-		fpGetPhysicalDeviceSurfaceSupportKHR(gpu, i, p_surface, &supportsPresent[i]);
+	if (p_surface != VK_NULL_HANDLE) {
+		for (uint32_t i = 0; i < queue_family_count; i++) {
+			fpGetPhysicalDeviceSurfaceSupportKHR(gpu, i, p_surface, &supportsPresent[i]);
+		}
 	}
 
 	// Search for a graphics and a present queue in the array of queue
@@ -1656,7 +1658,7 @@ Error VulkanContext::_initialize_queues(VkSurfaceKHR p_surface) {
 				graphicsQueueFamilyIndex = i;
 			}
 
-			if (supportsPresent[i] == VK_TRUE) {
+			if (p_surface == VK_NULL_HANDLE || supportsPresent[i] == VK_TRUE) {
 				graphicsQueueFamilyIndex = i;
 				presentQueueFamilyIndex = i;
 				break;
@@ -1664,7 +1666,7 @@ Error VulkanContext::_initialize_queues(VkSurfaceKHR p_surface) {
 		}
 	}
 
-	if (presentQueueFamilyIndex == UINT32_MAX) {
+	if (p_surface != VK_NULL_HANDLE && presentQueueFamilyIndex == UINT32_MAX) {
 		// If didn't find a queue that supports both graphics and present, then
 		// find a separate present queue.
 		for (uint32_t i = 0; i < queue_family_count; ++i) {
@@ -1715,54 +1717,59 @@ Error VulkanContext::_initialize_queues(VkSurfaceKHR p_surface) {
 		vkGetDeviceQueue(device, present_queue_family_index, 0, &present_queue);
 	}
 
-	// Get the list of VkFormat's that are supported:
-	uint32_t formatCount;
-	VkResult err = fpGetPhysicalDeviceSurfaceFormatsKHR(gpu, p_surface, &formatCount, nullptr);
-	ERR_FAIL_COND_V(err, ERR_CANT_CREATE);
-	VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
-	err = fpGetPhysicalDeviceSurfaceFormatsKHR(gpu, p_surface, &formatCount, surfFormats);
-	if (err) {
-		free(surfFormats);
-		ERR_FAIL_V(ERR_CANT_CREATE);
-	}
-	// If the format list includes just one entry of VK_FORMAT_UNDEFINED,
-	// the surface has no preferred format.  Otherwise, at least one
-	// supported format will be returned.
-	if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
-		format = VK_FORMAT_B8G8R8A8_UNORM;
-		color_space = surfFormats[0].colorSpace;
-	} else {
-		// These should be ordered with the ones we want to use on top and fallback modes further down
-		// we want a 32bit RGBA unsigned normalized buffer or similar.
-		const VkFormat allowed_formats[] = {
-			VK_FORMAT_B8G8R8A8_UNORM,
-			VK_FORMAT_R8G8B8A8_UNORM
-		};
-		uint32_t allowed_formats_count = sizeof(allowed_formats) / sizeof(VkFormat);
-
-		if (formatCount < 1) {
+	if (p_surface != VK_NULL_HANDLE) {
+		// Get the list of VkFormat's that are supported:
+		uint32_t formatCount;
+		VkResult err = fpGetPhysicalDeviceSurfaceFormatsKHR(gpu, p_surface, &formatCount, nullptr);
+		ERR_FAIL_COND_V(err, ERR_CANT_CREATE);
+		VkSurfaceFormatKHR *surfFormats = (VkSurfaceFormatKHR *)malloc(formatCount * sizeof(VkSurfaceFormatKHR));
+		err = fpGetPhysicalDeviceSurfaceFormatsKHR(gpu, p_surface, &formatCount, surfFormats);
+		if (err) {
 			free(surfFormats);
-			ERR_FAIL_V_MSG(ERR_CANT_CREATE, "formatCount less than 1");
+			ERR_FAIL_V(ERR_CANT_CREATE);
 		}
+		// If the format list includes just one entry of VK_FORMAT_UNDEFINED,
+		// the surface has no preferred format.  Otherwise, at least one
+		// supported format will be returned.
+		if (formatCount == 1 && surfFormats[0].format == VK_FORMAT_UNDEFINED) {
+			format = VK_FORMAT_B8G8R8A8_UNORM;
+			color_space = surfFormats[0].colorSpace;
+		} else {
+			// These should be ordered with the ones we want to use on top and fallback modes further down
+			// we want a 32bit RGBA unsigned normalized buffer or similar.
+			const VkFormat allowed_formats[] = {
+				VK_FORMAT_B8G8R8A8_UNORM,
+				VK_FORMAT_R8G8B8A8_UNORM
+			};
+			uint32_t allowed_formats_count = sizeof(allowed_formats) / sizeof(VkFormat);
 
-		// Find the first format that we support.
-		format = VK_FORMAT_UNDEFINED;
-		for (uint32_t af = 0; af < allowed_formats_count && format == VK_FORMAT_UNDEFINED; af++) {
-			for (uint32_t sf = 0; sf < formatCount && format == VK_FORMAT_UNDEFINED; sf++) {
-				if (surfFormats[sf].format == allowed_formats[af]) {
-					format = surfFormats[sf].format;
-					color_space = surfFormats[sf].colorSpace;
+			if (formatCount < 1) {
+				free(surfFormats);
+				ERR_FAIL_V_MSG(ERR_CANT_CREATE, "formatCount less than 1");
+			}
+
+			// Find the first format that we support.
+			format = VK_FORMAT_UNDEFINED;
+			for (uint32_t af = 0; af < allowed_formats_count && format == VK_FORMAT_UNDEFINED; af++) {
+				for (uint32_t sf = 0; sf < formatCount && format == VK_FORMAT_UNDEFINED; sf++) {
+					if (surfFormats[sf].format == allowed_formats[af]) {
+						format = surfFormats[sf].format;
+						color_space = surfFormats[sf].colorSpace;
+					}
 				}
+			}
+
+			if (format == VK_FORMAT_UNDEFINED) {
+				free(surfFormats);
+				ERR_FAIL_V_MSG(ERR_CANT_CREATE, "No usable surface format found.");
 			}
 		}
 
-		if (format == VK_FORMAT_UNDEFINED) {
-			free(surfFormats);
-			ERR_FAIL_V_MSG(ERR_CANT_CREATE, "No usable surface format found.");
-		}
+		free(surfFormats);
+	} else {
+		format = VK_FORMAT_B8G8R8A8_UNORM;
+		color_space = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // TODO
 	}
-
-	free(surfFormats);
 
 	Error serr = _create_semaphores();
 	if (serr) {

@@ -62,7 +62,11 @@ Error VulkanContextIOS::initialize_ios() {
 	if (res != OK) {
 		return res;
 	}
-	return _create_physical_device(nullptr);
+	res = _create_physical_device(nullptr);
+	if (res != OK) {
+		return res;
+	}
+	return _initialize_queues(nullptr);
 }
 
 VulkanContextIOS::VulkanContextIOS() {}
