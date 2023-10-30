@@ -246,8 +246,6 @@ private:
 
 	Error _create_instance();
 
-	Error _create_physical_device(VkSurfaceKHR p_surface);
-
 	Error _initialize_queues(VkSurfaceKHR p_surface);
 
 	Error _create_device();
@@ -263,6 +261,8 @@ private:
 
 protected:
 	virtual const char *_get_platform_surface_extension() const = 0;
+
+	Error _create_physical_device(VkSurfaceKHR p_surface);
 
 	virtual Error _window_create(DisplayServer::WindowID p_window_id, DisplayServer::VSyncMode p_vsync_mode, VkSurfaceKHR p_surface, int p_width, int p_height);
 

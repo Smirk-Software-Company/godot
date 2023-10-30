@@ -54,7 +54,7 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 
 	if (rendering_driver == "vulkan") {
 		context_vulkan = memnew(VulkanContextIOS);
-		if (context_vulkan->initialize() != OK) {
+		if (context_vulkan->initialize_ios() != OK) {
 			memdelete(context_vulkan);
 			context_vulkan = nullptr;
 			ERR_FAIL_MSG("Failed to initialize Vulkan context");

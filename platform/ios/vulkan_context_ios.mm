@@ -57,6 +57,14 @@ Error VulkanContextIOS::window_create(DisplayServer::WindowID p_window_id, Displ
 	return _window_create(p_window_id, p_vsync_mode, surface, p_width, p_height);
 }
 
+Error VulkanContextIOS::initialize_ios() {
+	Error res = initialize();
+	if (res != OK) {
+		return res;
+	}
+	return _create_physical_device(nullptr);
+}
+
 VulkanContextIOS::VulkanContextIOS() {}
 
 VulkanContextIOS::~VulkanContextIOS() {}

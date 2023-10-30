@@ -1226,91 +1226,93 @@ Error VulkanContext::_create_physical_device(VkSurfaceKHR p_surface) {
 
 		int type_selected = -1;
 		print_verbose("Vulkan devices:");
-		for (uint32_t i = 0; i < gpu_count; ++i) {
-			VkPhysicalDeviceProperties props;
-			vkGetPhysicalDeviceProperties(physical_devices[i], &props);
+		if (p_surface != nullptr) {
+			for (uint32_t i = 0; i < gpu_count; ++i) {
+				VkPhysicalDeviceProperties props;
+				vkGetPhysicalDeviceProperties(physical_devices[i], &props);
 
-			bool present_supported = false;
+				bool present_supported = false;
 
-			uint32_t device_queue_family_count = 0;
-			vkGetPhysicalDeviceQueueFamilyProperties(physical_devices[i], &device_queue_family_count, nullptr);
-			VkQueueFamilyProperties *device_queue_props = (VkQueueFamilyProperties *)malloc(device_queue_family_count * sizeof(VkQueueFamilyProperties));
-			vkGetPhysicalDeviceQueueFamilyProperties(physical_devices[i], &device_queue_family_count, device_queue_props);
-			for (uint32_t j = 0; j < device_queue_family_count; j++) {
-				if ((device_queue_props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
-					VkBool32 supports;
-					err = vkGetPhysicalDeviceSurfaceSupportKHR(
-							physical_devices[i], j, p_surface, &supports);
-					if (err == VK_SUCCESS && supports) {
-						present_supported = true;
-					} else {
-						continue;
+				uint32_t device_queue_family_count = 0;
+				vkGetPhysicalDeviceQueueFamilyProperties(physical_devices[i], &device_queue_family_count, nullptr);
+				VkQueueFamilyProperties *device_queue_props = (VkQueueFamilyProperties *)malloc(device_queue_family_count * sizeof(VkQueueFamilyProperties));
+				vkGetPhysicalDeviceQueueFamilyProperties(physical_devices[i], &device_queue_family_count, device_queue_props);
+				for (uint32_t j = 0; j < device_queue_family_count; j++) {
+					if ((device_queue_props[j].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
+						VkBool32 supports;
+						err = vkGetPhysicalDeviceSurfaceSupportKHR(
+								physical_devices[i], j, p_surface, &supports);
+						if (err == VK_SUCCESS && supports) {
+							present_supported = true;
+						} else {
+							continue;
+						}
 					}
 				}
-			}
-			String name = String::utf8(props.deviceName);
-			String vendor = "Unknown";
-			String dev_type;
-			switch (props.deviceType) {
-				case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: {
-					dev_type = "Discrete";
-				} break;
-				case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: {
-					dev_type = "Integrated";
-				} break;
-				case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: {
-					dev_type = "Virtual";
-				} break;
-				case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_CPU: {
-					dev_type = "CPU";
-				} break;
-				default: {
-					dev_type = "Other";
-				} break;
-			}
-			uint32_t vendor_idx = 0;
-			while (vendor_names[vendor_idx].name != nullptr) {
-				if (props.vendorID == vendor_names[vendor_idx].id) {
-					vendor = vendor_names[vendor_idx].name;
-					break;
-				}
-				vendor_idx++;
-			}
-			free(device_queue_props);
-			print_verbose("  #" + itos(i) + ": " + vendor + " " + name + " - " + (present_supported ? "Supported" : "Unsupported") + ", " + dev_type);
-
-			if (present_supported) { // Select first supported device of preferred type: Discrete > Integrated > Virtual > CPU > Other.
+				String name = String::utf8(props.deviceName);
+				String vendor = "Unknown";
+				String dev_type;
 				switch (props.deviceType) {
 					case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: {
-						if (type_selected < 4) {
-							type_selected = 4;
-							device_index = i;
-						}
+						dev_type = "Discrete";
 					} break;
 					case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: {
-						if (type_selected < 3) {
-							type_selected = 3;
-							device_index = i;
-						}
+						dev_type = "Integrated";
 					} break;
 					case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: {
-						if (type_selected < 2) {
-							type_selected = 2;
-							device_index = i;
-						}
+						dev_type = "Virtual";
 					} break;
 					case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_CPU: {
-						if (type_selected < 1) {
-							type_selected = 1;
-							device_index = i;
-						}
+						dev_type = "CPU";
 					} break;
 					default: {
-						if (type_selected < 0) {
-							type_selected = 0;
-							device_index = i;
-						}
+						dev_type = "Other";
 					} break;
+				}
+				uint32_t vendor_idx = 0;
+				while (vendor_names[vendor_idx].name != nullptr) {
+					if (props.vendorID == vendor_names[vendor_idx].id) {
+						vendor = vendor_names[vendor_idx].name;
+						break;
+					}
+					vendor_idx++;
+				}
+				free(device_queue_props);
+				print_verbose("  #" + itos(i) + ": " + vendor + " " + name + " - " + (present_supported ? "Supported" : "Unsupported") + ", " + dev_type);
+
+				if (present_supported) { // Select first supported device of preferred type: Discrete > Integrated > Virtual > CPU > Other.
+					switch (props.deviceType) {
+						case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: {
+							if (type_selected < 4) {
+								type_selected = 4;
+								device_index = i;
+							}
+						} break;
+						case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: {
+							if (type_selected < 3) {
+								type_selected = 3;
+								device_index = i;
+							}
+						} break;
+						case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: {
+							if (type_selected < 2) {
+								type_selected = 2;
+								device_index = i;
+							}
+						} break;
+						case VkPhysicalDeviceType::VK_PHYSICAL_DEVICE_TYPE_CPU: {
+							if (type_selected < 1) {
+								type_selected = 1;
+								device_index = i;
+							}
+						} break;
+						default: {
+							if (type_selected < 0) {
+								type_selected = 0;
+								device_index = i;
+							}
+						} break;
+					}
 				}
 			}
 		}
@@ -1379,11 +1381,13 @@ Error VulkanContext::_create_physical_device(VkSurfaceKHR p_surface) {
 	vkGetPhysicalDeviceFeatures(gpu, &features);
 
 	// Check required features and abort if any of them is missing.
-	if (!features.imageCubeArray || !features.independentBlend) {
+	// TODO(smirk): Implement proper fix
+
+	if (/* !features.imageCubeArray || */ !features.independentBlend) {
 		String error_string = vformat("Your GPU (%s) does not support the following features which are required to use Vulkan-based renderers in Godot:\n\n", device_name);
-		if (!features.imageCubeArray) {
+		/*if (!features.imageCubeArray) {
 			error_string += "- No support for image cube arrays.\n";
-		}
+		}*/
 		if (!features.independentBlend) {
 			error_string += "- No support for independentBlend.\n";
 		}
