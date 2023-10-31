@@ -2500,8 +2500,8 @@ Error Main::setup2() {
 	if (show_logo) { //boot logo!
 		const bool boot_logo_image = GLOBAL_DEF_BASIC("application/boot_splash/show_image", true);
 		const String boot_logo_path = String(GLOBAL_DEF_BASIC(PropertyInfo(Variant::STRING, "application/boot_splash/image", PROPERTY_HINT_FILE, "*.png"), String())).strip_edges();
-		const bool boot_logo_scale = GLOBAL_DEF_BASIC("application/boot_splash/fullsize", true);
-		const bool boot_logo_filter = GLOBAL_DEF_BASIC("application/boot_splash/use_filter", true);
+		//const bool boot_logo_scale = GLOBAL_DEF_BASIC("application/boot_splash/fullsize", true);
+		//const bool boot_logo_filter = GLOBAL_DEF_BASIC("application/boot_splash/use_filter", true);
 
 		Ref<Image> boot_logo;
 
@@ -2528,8 +2528,8 @@ Error Main::setup2() {
 						(editor || project_manager) ? boot_splash_editor_bg_color : boot_splash_bg_color);
 #endif
 		if (boot_logo.is_valid()) {
-			RenderingServer::get_singleton()->set_boot_image(boot_logo, boot_bg_color, boot_logo_scale,
-					boot_logo_filter);
+//			RenderingServer::get_singleton()->set_boot_image(boot_logo, boot_bg_color, boot_logo_scale,
+//					boot_logo_filter);
 
 		} else {
 #ifndef NO_DEFAULT_BOOT_LOGO
@@ -2543,7 +2543,7 @@ Error Main::setup2() {
 			MAIN_PRINT("Main: ClearColor");
 			RenderingServer::get_singleton()->set_default_clear_color(boot_bg_color);
 			MAIN_PRINT("Main: Image");
-			RenderingServer::get_singleton()->set_boot_image(splash, boot_bg_color, false);
+//			RenderingServer::get_singleton()->set_boot_image(splash, boot_bg_color, false);
 #endif
 		}
 
@@ -3107,6 +3107,7 @@ bool Main::start(uint64_t native_window_handle) {
 		window->set_name("root");
 		window->set_title(GLOBAL_GET("application/config/name"));
 		window->init_from_native(native_window_handle);
+		window_id = window->get_window_id();
 		sml->init_with_root(window);
 	}
 
@@ -3509,6 +3510,7 @@ uint32_t Main::frame = 0;
 bool Main::force_redraw_requested = false;
 int Main::iterating = 0;
 bool Main::agile_input_event_flushing = false;
+DisplayServer::WindowID Main::window_id = DisplayServer::INVALID_WINDOW_ID;
 
 bool Main::is_iterating() {
 	return iterating > 0;
@@ -3520,6 +3522,7 @@ static uint64_t process_max = 0;
 static uint64_t navigation_process_max = 0;
 
 bool Main::iteration() {
+	DisplayServer::get_singleton()->start_render_external_window(window_id);
 	//for now do not error on this
 	//ERR_FAIL_COND_V(iterating, false);
 
@@ -3697,6 +3700,8 @@ bool Main::iteration() {
 	if ((quit_after > 0) && (Engine::get_singleton()->_process_frames >= quit_after)) {
 		exit = true;
 	}
+
+	DisplayServer::get_singleton()->stop_render_external_window(window_id);
 
 	if (fixed_fps != -1) {
 		return exit;

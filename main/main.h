@@ -34,6 +34,7 @@
 #include "core/error/error_list.h"
 #include "core/os/thread.h"
 #include "core/typedefs.h"
+#include "servers/display_server.h"
 
 template <class T>
 class Vector;
@@ -47,6 +48,7 @@ class Main {
 	static bool force_redraw_requested;
 	static int iterating;
 	static bool agile_input_event_flushing;
+	static DisplayServer::WindowID window_id;
 
 public:
 	static bool is_cmdline_tool();

@@ -34,6 +34,8 @@
 #include "core/input/input.h"
 #include "servers/display_server.h"
 
+#import "display_layer.h"
+
 #if defined(VULKAN_ENABLED)
 #import "vulkan_context_ios.h"
 
@@ -74,7 +76,7 @@ class DisplayServerIOS : public DisplayServer {
 	HashMap<WindowID, Callable> input_event_callbacks;
 	HashMap<WindowID, Callable> window_event_callbacks;
 
-	NSMutableDictionary<NSNumber*, CALayer*> *layers;
+	NSMutableDictionary<NSNumber*, CALayer<DisplayLayer>*> *layers;
 
 	Callable window_resize_callback;
 	Callable input_text_callback;
@@ -104,6 +106,8 @@ public:
 
 	virtual WindowID wrap_external_window(void* p_native_handle) override;
 	virtual void release_external_window(WindowID p_id) override;
+	virtual void start_render_external_window(WindowID p_id) override;
+	virtual void stop_render_external_window(WindowID p_id) override;
 
 	virtual void window_set_rect_changed_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual void window_set_window_event_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;

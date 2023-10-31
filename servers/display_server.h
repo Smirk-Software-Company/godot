@@ -364,6 +364,8 @@ public:
 	virtual WindowID create_sub_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
 	virtual WindowID wrap_external_window(void* p_native_handle);
 	virtual void release_external_window(WindowID p_id);
+	virtual void start_render_external_window(WindowID p_id);
+	virtual void stop_render_external_window(WindowID p_id);
 	virtual void show_window(WindowID p_id);
 	virtual void delete_sub_window(WindowID p_id);
 

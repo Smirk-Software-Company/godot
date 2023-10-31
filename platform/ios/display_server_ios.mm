@@ -60,7 +60,7 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 			ERR_FAIL_MSG("Failed to initialize Vulkan context");
 		}
 
-		layers = [[NSMutableDictionary<NSNumber*, CALayer*> alloc] init];
+		layers = [[NSMutableDictionary<NSNumber*, CALayer<DisplayLayer>*> alloc] init];
 
 		rendering_device_vulkan = memnew(RenderingDeviceVulkan);
 		rendering_device_vulkan->initialize(context_vulkan);
@@ -71,6 +71,7 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 
 #if defined(GLES3_ENABLED)
 	if (rendering_driver == "opengl3") {
+		[GodotOpenGLLayer initializeCommon];
 		RasterizerGLES3::make_current(false);
 	}
 #endif
@@ -145,35 +146,82 @@ void DisplayServerIOS::process_events() {
 }
 
 DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_handle) {
-#if defined(VULKAN_ENABLED)
-	if (rendering_driver == "vulkan") {
-		ERR_FAIL_COND_V(p_native_handle == nullptr, INVALID_WINDOW_ID);
-		CALayer *layer = CFBridgingRelease(p_native_handle);
 
-		WindowID window_id = window_id_counter++;
-		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
+	ERR_FAIL_COND_V(p_native_handle == nullptr, INVALID_WINDOW_ID);
+	CALayer *view_layer = CFBridgingRelease(p_native_handle);
+
+	CALayer<DisplayLayer> *layer = nullptr;
+
+	if (rendering_driver == "vulkan") {
+#if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
+		if (@available(iOS 13, *)) {
+			layer = [GodotMetalLayer layer];
+		} else {
+			return INVALID_WINDOW_ID;
+		}
+#else
+		layer = [GodotMetalLayer layer];
+#endif
+	} else if (rendering_driver == "opengl3") {
+		printf("Befor opengllayer init\n");
+		layer = [GodotOpenGLLayer layer];
+		printf("After opengllayer init\n");
+	} else {
+		return INVALID_WINDOW_ID;
+	}
+
+	layer.frame = view_layer.frame;
+	layer.contentsScale = view_layer.contentsScale;
+
+	WindowID window_id = window_id_counter++;
+
+	if (rendering_driver == "vulkan") {
+#if defined(VULKAN_ENABLED)
+		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * layer.contentsScale;
 		if (context_vulkan->window_create(window_id, DisplayServer::VSyncMode::VSYNC_DISABLED, layer, size.width, size.height) != OK) {
 			ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create Vulkan window.");
 		}
-		[layers setObject:layer forKey:[NSNumber numberWithInt:window_id]];
-		window_ids.insert(window_id);
-		return window_id;
-	}
+#else
+		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Rendering driver 'vulkan' not enabled.");
 #endif
-
+	} else if (rendering_driver == "opengl3") {
 #if defined(GLES3_ENABLED)
-	if (rendering_driver == "opengl3") {
-		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "wrap_external_window does not support opengl3.");
-	}
-#endif
+		if (layer == nullptr) {
+			ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create iOS OpenGLES rendering layer.");
+		}
 
-	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Unknown rendering driver.");
+		RasterizerGLES3::make_current(false);
+#else
+		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Rendering driver 'opengl3' not enabled.");
+#endif
+	} else {
+		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Unknown rendering driver.");
+	}
+
+	[layer initializeDisplayLayer];
+
+	[view_layer addSublayer:layer];
+
+	[layers setObject:layer forKey:[NSNumber numberWithInt:window_id]];
+	window_ids.insert(window_id);
+	return window_id;
+
 }
 
 void DisplayServerIOS::release_external_window(DisplayServer::WindowID p_id) {
 	context_vulkan->window_destroy(p_id);
 	[layers removeObjectForKey:[NSNumber numberWithInt:p_id]];
 	window_ids.erase(p_id);
+}
+
+void DisplayServerIOS::start_render_external_window(WindowID p_id) {
+	CALayer<DisplayLayer> *layer = [layers objectForKey:[NSNumber numberWithInt:p_id]];
+	[layer startRenderDisplayLayer];
+}
+
+void DisplayServerIOS::stop_render_external_window(WindowID p_id) {
+	CALayer<DisplayLayer> *layer = [layers objectForKey:[NSNumber numberWithInt:p_id]];
+	[layer stopRenderDisplayLayer];
 }
 
 void DisplayServerIOS::_dispatch_input_events(const Ref<InputEvent> &p_event) {
