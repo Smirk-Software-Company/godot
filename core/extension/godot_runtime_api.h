@@ -7,6 +7,8 @@
 extern "C" {
 #endif
 
+#define LIBGODOT_API __attribute__((__visibility__("default")))
+
 #ifdef GODOT_EXTERNAL
 #include <gdextension_interface.h>
 #else
@@ -29,7 +31,7 @@ typedef struct {
 
 typedef GodotRuntimeAPI*(*godot_load_library_func)();
 
-GodotRuntimeAPI* godot_load_library();
+LIBGODOT_API GodotRuntimeAPI* godot_load_library();
 
 #ifdef __cplusplus
 }
