@@ -69,9 +69,7 @@ static CALayer<DisplayLayer> *create_rendering_layer(const String &p_rendering_d
 		if (initCommon) {
 			[GodotOpenGLLayer initializeCommon];
 		}
-		printf("Before opengllayer init\n");
 		layer = [GodotOpenGLLayer layer];
-		printf("After opengllayer init\n");
 	} else {
 		ERR_FAIL_V_MSG(nullptr, "Invalid rendering driver");
 	}
@@ -621,7 +619,7 @@ void DisplayServerIOS::window_set_size(const Size2i p_size, WindowID p_window) {
 Size2i DisplayServerIOS::window_get_size(WindowID p_window) const {
 	CALayer *layer = [layers objectForKey:[NSNumber numberWithInt:p_window]];
 	ERR_FAIL_NULL_V_MSG(layer, Size2i(), "Layer for Window ID not found");
-	return Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
+	return Size2i(layer.bounds.size.width, layer.bounds.size.height) * layer.contentsScale;
 }
 
 Size2i DisplayServerIOS::window_get_size_with_decorations(WindowID p_window) const {
