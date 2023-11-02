@@ -4232,7 +4232,7 @@ void DisplayServerMacOS::set_icon(const Ref<Image> &p_icon) {
 	}
 }
 
-DisplayServer *DisplayServerMacOS::create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
+DisplayServer *DisplayServerMacOS::create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t /* native_main_window_handle */) {
 	DisplayServer *ds = memnew(DisplayServerMacOS(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error));
 	if (r_error != OK) {
 		if (p_rendering_driver == "vulkan") {

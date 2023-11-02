@@ -43,8 +43,6 @@ class VulkanContextIOS : public VulkanContext {
 public:
 	Error window_create(DisplayServer::WindowID p_window_id, DisplayServer::VSyncMode p_vsync_mode, CALayer *p_metal_layer, int p_width, int p_height);
 
-	Error initialize_ios();
-
 	VulkanContextIOS();
 	~VulkanContextIOS();
 };

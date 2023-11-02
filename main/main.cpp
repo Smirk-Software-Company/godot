@@ -2243,7 +2243,7 @@ Error _parse_resource_dummy(void *p_data, VariantParser::Stream *p_stream, Ref<R
 	return OK;
 }
 
-Error Main::setup2() {
+Error Main::setup2(uint64_t native_main_window_handle) {
 	Thread::make_main_thread(); // Make whatever thread call this the main thread.
 	set_current_thread_safe_for_nodes(true);
 
@@ -2353,7 +2353,7 @@ Error Main::setup2() {
 
 		// rendering_driver now held in static global String in main and initialized in setup()
 		Error err;
-		display_server = DisplayServer::create(display_driver_idx, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err);
+		display_server = DisplayServer::create(display_driver_idx, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err, native_main_window_handle);
 		if (err != OK || display_server == nullptr) {
 			// We can't use this display server, try other ones as fallback.
 			// Skip headless (always last registered) because that's not what users
@@ -2362,7 +2362,7 @@ Error Main::setup2() {
 				if (i == display_driver_idx) {
 					continue; // Don't try the same twice.
 				}
-				display_server = DisplayServer::create(i, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err);
+				display_server = DisplayServer::create(i, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err, native_main_window_handle);
 				if (err == OK && display_server != nullptr) {
 					break;
 				}
@@ -2756,7 +2756,7 @@ String Main::get_rendering_driver_name() {
 // everything the main loop needs to know about frame timings
 static MainTimerSync main_timer_sync;
 
-bool Main::start(uint64_t native_window_handle) {
+bool Main::start() {
 	ERR_FAIL_COND_V(!_start_success, false);
 
 	bool has_icon = false;
@@ -3106,12 +3106,14 @@ bool Main::start(uint64_t native_window_handle) {
 		Window* window = memnew(Window);
 		window->set_name("root");
 		window->set_title(GLOBAL_GET("application/config/name"));
-		window->init_from_native(native_window_handle);
-		window_id = window->get_window_id();
 		sml->init_with_root(window);
 	}
 
 	OS::get_singleton()->set_main_loop(main_loop);
+	Window* root_window = Object::cast_to<Window>(sml->get_root());
+	if (root_window) {
+		window_id = root_window->get_window_id();
+	}
 
 	if (sml) {
 #ifdef DEBUG_ENABLED

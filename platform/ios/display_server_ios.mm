@@ -44,9 +44,61 @@ DisplayServerIOS *DisplayServerIOS::get_singleton() {
 	return (DisplayServerIOS *)DisplayServer::get_singleton();
 }
 
-DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
+static CALayer<DisplayLayer> *create_rendering_layer(const String &p_rendering_driver, void* p_native_handle, bool initCommon = false) {
+	CALayer *view_layer = CFBridgingRelease(p_native_handle);
 
+	CALayer<DisplayLayer> *layer = nullptr;
+
+	if (p_rendering_driver == "vulkan") {
+#if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
+		if (@available(iOS 13, *)) {
+			if (initCommon) {
+				[GodotMetalLayer initializeCommon];
+			}
+			layer = [GodotMetalLayer layer];
+		} else {
+			ERR_FAIL_V_MSG(nullptr, "Metal not supported on iOS Simulator before iOS 13.");
+		}
+#else
+		if (initCommon) {
+			[GodotMetalLayer initializeCommon];
+		}
+		layer = [GodotMetalLayer layer];
+#endif
+	} else if (p_rendering_driver == "opengl3") {
+		if (initCommon) {
+			[GodotOpenGLLayer initializeCommon];
+		}
+		printf("Before opengllayer init\n");
+		layer = [GodotOpenGLLayer layer];
+		printf("After opengllayer init\n");
+	} else {
+		ERR_FAIL_V_MSG(nullptr, "Invalid rendering driver");
+	}
+
+	layer.frame = view_layer.frame;
+	layer.contentsScale = view_layer.contentsScale;
+
+	[layer initializeDisplayLayer];
+
+	[view_layer addSublayer:layer];
+
+	return layer;
+}
+
+DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t p_native_main_window_handle) {
+
+	vsync_mode = p_vsync_mode;
 	rendering_driver = p_rendering_driver;
+
+	if (!p_native_main_window_handle) {
+		ERR_FAIL_MSG("Invalid native window handle");
+	}
+
+	CALayer<DisplayLayer> *layer = create_rendering_layer(p_rendering_driver, (void *) p_native_main_window_handle, true);
+	if (!layer) {
+		ERR_FAIL_MSG("Unable to create rendering layer");
+	}
 
 #if defined(VULKAN_ENABLED)
 	context_vulkan = nullptr;
@@ -54,13 +106,19 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 
 	if (rendering_driver == "vulkan") {
 		context_vulkan = memnew(VulkanContextIOS);
-		if (context_vulkan->initialize_ios() != OK) {
+		if (context_vulkan->initialize() != OK) {
 			memdelete(context_vulkan);
 			context_vulkan = nullptr;
 			ERR_FAIL_MSG("Failed to initialize Vulkan context");
 		}
 
-		layers = [[NSMutableDictionary<NSNumber*, CALayer<DisplayLayer>*> alloc] init];
+		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * screen_get_max_scale();
+		if (context_vulkan->window_create(MAIN_WINDOW_ID, p_vsync_mode, layer, size.width, size.height) != OK) {
+			memdelete(context_vulkan);
+			context_vulkan = nullptr;
+			r_error = ERR_UNAVAILABLE;
+			ERR_FAIL_MSG("Failed to create Vulkan window.");
+		}
 
 		rendering_device_vulkan = memnew(RenderingDeviceVulkan);
 		rendering_device_vulkan->initialize(context_vulkan);
@@ -71,10 +129,13 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 
 #if defined(GLES3_ENABLED)
 	if (rendering_driver == "opengl3") {
-		[GodotOpenGLLayer initializeCommon];
 		RasterizerGLES3::make_current(false);
 	}
 #endif
+
+	WindowID window_id = window_id_counter ++; // MAIN_WINDOW_ID
+	[layers setObject:layer forKey:[NSNumber numberWithInt:window_id]];
+	window_ids.insert(window_id);
 
 	bool keep_screen_on = bool(GLOBAL_GET("display/window/energy_saving/keep_screen_on"));
 	screen_set_keep_on(keep_screen_on);
@@ -99,8 +160,8 @@ DisplayServerIOS::~DisplayServerIOS() {
 #endif
 }
 
-DisplayServer *DisplayServerIOS::create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
-	return memnew(DisplayServerIOS(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error));
+DisplayServer *DisplayServerIOS::create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle) {
+	return memnew(DisplayServerIOS(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error, native_main_window_handle));
 }
 
 Vector<String> DisplayServerIOS::get_rendering_drivers_func() {
@@ -148,37 +209,19 @@ void DisplayServerIOS::process_events() {
 DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_handle) {
 
 	ERR_FAIL_COND_V(p_native_handle == nullptr, INVALID_WINDOW_ID);
-	CALayer *view_layer = CFBridgingRelease(p_native_handle);
 
-	CALayer<DisplayLayer> *layer = nullptr;
+	CALayer<DisplayLayer> *layer = create_rendering_layer(rendering_driver, p_native_handle);
 
-	if (rendering_driver == "vulkan") {
-#if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
-		if (@available(iOS 13, *)) {
-			layer = [GodotMetalLayer layer];
-		} else {
-			return INVALID_WINDOW_ID;
-		}
-#else
-		layer = [GodotMetalLayer layer];
-#endif
-	} else if (rendering_driver == "opengl3") {
-		printf("Befor opengllayer init\n");
-		layer = [GodotOpenGLLayer layer];
-		printf("After opengllayer init\n");
-	} else {
-		return INVALID_WINDOW_ID;
+	if (!layer) {
+		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create rendering layer.");
 	}
-
-	layer.frame = view_layer.frame;
-	layer.contentsScale = view_layer.contentsScale;
 
 	WindowID window_id = window_id_counter++;
 
 	if (rendering_driver == "vulkan") {
 #if defined(VULKAN_ENABLED)
 		Size2i size = Size2i(layer.bounds.size.width, layer.bounds.size.height) * layer.contentsScale;
-		if (context_vulkan->window_create(window_id, DisplayServer::VSyncMode::VSYNC_DISABLED, layer, size.width, size.height) != OK) {
+		if (context_vulkan->window_create(window_id, vsync_mode, layer, size.width, size.height) != OK) {
 			ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create Vulkan window.");
 		}
 #else
@@ -186,10 +229,6 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 #endif
 	} else if (rendering_driver == "opengl3") {
 #if defined(GLES3_ENABLED)
-		if (layer == nullptr) {
-			ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Failed to create iOS OpenGLES rendering layer.");
-		}
-
 		RasterizerGLES3::make_current(false);
 #else
 		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Rendering driver 'opengl3' not enabled.");
@@ -198,14 +237,9 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Unknown rendering driver.");
 	}
 
-	[layer initializeDisplayLayer];
-
-	[view_layer addSublayer:layer];
-
 	[layers setObject:layer forKey:[NSNumber numberWithInt:window_id]];
 	window_ids.insert(window_id);
 	return window_id;
-
 }
 
 void DisplayServerIOS::release_external_window(DisplayServer::WindowID p_id) {

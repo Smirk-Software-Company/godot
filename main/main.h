@@ -62,13 +62,13 @@ public:
 
 	static int test_entrypoint(int argc, char *argv[], bool &tests_need_run);
 	static Error setup(const char *execpath, int argc, char *argv[], bool p_second_phase = true);
-	static Error setup2(); // The thread calling setup2() will effectively become the main thread.
+	static Error setup2(uint64_t native_main_window_handle = 0); // The thread calling setup2() will effectively become the main thread.
 	static String get_rendering_driver_name();
 #ifdef TESTS_ENABLED
 	static Error test_setup();
 	static void test_cleanup();
 #endif
-	static bool start(uint64_t native_window_handle = 0);
+	static bool start();
 
 	static bool iteration();
 	static void force_redraw();

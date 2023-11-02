@@ -68,7 +68,7 @@ class DisplayServerIOS : public DisplayServer {
 
 	// Disabled for embedding
 	// id tts = nullptr;
-
+	DisplayServer::VSyncMode vsync_mode;
 	DisplayServer::ScreenOrientation screen_orientation;
 
 	ObjectID window_attached_instance_id;
@@ -88,7 +88,7 @@ class DisplayServerIOS : public DisplayServer {
 
 	void perform_event(const Ref<InputEvent> &p_event);
 
-	DisplayServerIOS(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
+	DisplayServerIOS(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	~DisplayServerIOS();
 
 public:
@@ -97,7 +97,7 @@ public:
 	static DisplayServerIOS *get_singleton();
 
 	static void register_ios_driver();
-	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
+	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	static Vector<String> get_rendering_drivers_func();
 
 	// MARK: - Events

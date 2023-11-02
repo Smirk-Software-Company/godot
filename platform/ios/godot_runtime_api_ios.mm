@@ -31,7 +31,7 @@ int godot_load_engine(int argc, char** argv) {
     // We must override main when testing is enabled
     TEST_MAIN_OVERRIDE
 
-    Error err = Main::setup(argv[0], argc - 1, &argv[1]);
+    Error err = Main::setup(argv[0], argc - 1, &argv[1], false);
     if (err != OK) {
         return GODOT_ERROR;
     }
@@ -40,7 +40,11 @@ int godot_load_engine(int argc, char** argv) {
 }
 
 int godot_start_engine(uint64_t native_window_handle) {
-    if (Main::start(native_window_handle)) {
+    Error err = Main::setup2(native_window_handle);
+    if (err != OK) {
+        return GODOT_ERROR;
+    }
+    if (Main::start()) {
         return GODOT_OK;
     } else {
         return GODOT_ERROR;
