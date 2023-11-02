@@ -85,7 +85,7 @@ static EAGLContext *context = nullptr;
 
 + (void)initializeCommon {
 	// Create GL ES 3 context
-	if (GLOBAL_GET("rendering/renderer/rendering_method") == "gl_compatibility") {
+	if (OS::get_singleton()->get_current_rendering_method() == "gl_compatibility") {
 		context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
 		NSLog(@"Setting up an OpenGL ES 3.0 context.");
 		if (!context) {

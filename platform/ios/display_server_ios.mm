@@ -134,6 +134,7 @@ DisplayServerIOS::DisplayServerIOS(const String &p_rendering_driver, WindowMode 
 #endif
 
 	WindowID window_id = window_id_counter ++; // MAIN_WINDOW_ID
+    layers = [[NSMutableDictionary<NSNumber*, CALayer<DisplayLayer>*> alloc] init];
 	[layers setObject:layer forKey:[NSNumber numberWithInt:window_id]];
 	window_ids.insert(window_id);
 
