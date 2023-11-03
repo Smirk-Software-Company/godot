@@ -386,7 +386,7 @@ void RasterizerGLES3::_blit_render_target_to_screen(RID p_render_target, Display
 	}
 
 	glReadBuffer(GL_COLOR_ATTACHMENT0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, GLES3::TextureStorage::system_fbo);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, rt->screen_fbo);
 
 	if (p_first) {
 		Size2i win_size = DisplayServer::get_singleton()->window_get_size();

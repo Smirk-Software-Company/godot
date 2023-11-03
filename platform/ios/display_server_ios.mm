@@ -257,6 +257,15 @@ void DisplayServerIOS::stop_render_external_window(WindowID p_id) {
 	[layer stopRenderDisplayLayer];
 }
 
+int DisplayServerIOS::get_screen_native_id(WindowID p_id) {
+	CALayer<DisplayLayer> *layer = [layers objectForKey:[NSNumber numberWithInt:p_id]];
+	if ([layer isKindOfClass:[GodotOpenGLLayer class]]) {
+		return (int)((GodotOpenGLLayer *)layer).fbo;
+	} else {
+		return 0;
+	}
+}
+
 void DisplayServerIOS::_dispatch_input_events(const Ref<InputEvent> &p_event) {
 	DisplayServerIOS::get_singleton()->send_input_event(p_event);
 }

@@ -1163,6 +1163,11 @@ void Window::_update_window_callbacks() {
 
 Viewport *Window::get_embedder() const {
 	ERR_READ_THREAD_GUARD_V(nullptr);
+
+	if (native_window_handle) {
+		return nullptr;
+	}
+
 	Viewport *vp = get_parent_viewport();
 
 	while (vp) {
@@ -1198,83 +1203,77 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
-			if (native_window_handle) {
-				if (window_id == DisplayServer::INVALID_WINDOW_ID) {
-					window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
+			bool embedded = false;
+			{
+				embedder = get_embedder();
+				if (embedder) {
+					embedded = true;
+					if (!visible) {
+						embedder = nullptr; // Not yet since not visible.
+					}
 				}
+			}
+
+			if (embedded) {
+				// Create as embedded.
+				if (embedder) {
+					if (initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE) {
+						position = (embedder->get_visible_rect().size - size) / 2;
+					}
+					embedder->_sub_window_register(this);
+					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_PARENT_VISIBLE);
+					_update_window_size();
+				}
+
+			} else {
+				if (!get_parent() || native_window_handle) {
+					// It's the root window!
+					visible = true; // Always visible.
+					if (native_window_handle) {
+						window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
+					} else {
+						window_id = DisplayServer::MAIN_WINDOW_ID;
+					}
+					RS::get_singleton()->viewport_set_screen_native_id(get_viewport_rid(), DisplayServer::get_singleton()->get_screen_native_id(window_id));
+					DisplayServer::get_singleton()->window_attach_instance_id(get_instance_id(), window_id);
+					_update_from_window();
+					// Since this window already exists (created on start), we must update pos and size from it.
+					{
+						position = DisplayServer::get_singleton()->window_get_position(window_id);
+						size = DisplayServer::get_singleton()->window_get_size(window_id);
+						focused = DisplayServer::get_singleton()->window_is_focused(window_id);
+					}
+					_update_window_size(); // Inform DisplayServer of minimum and maximum size.
+					_update_viewport_size(); // Then feed back to the viewport.
+					_update_window_callbacks();
+					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_VISIBLE);
+				} else {
+					// Create.
+					if (visible) {
+						_make_window();
+					}
+				}
+			}
+
+			if (transient) {
+				_make_transient();
+			}
+			if (visible) {
 				notification(NOTIFICATION_VISIBILITY_CHANGED);
 				emit_signal(SceneStringNames::get_singleton()->visibility_changed);
 				RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
-				// Emits NOTIFICATION_THEME_CHANGED internally.
-				set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
-			} else {
-				bool embedded = false;
-				{
-					embedder = get_embedder();
-					if (embedder) {
-						embedded = true;
-						if (!visible) {
-							embedder = nullptr; // Not yet since not visible.
-						}
-					}
-				}
-
-				if (embedded) {
-					// Create as embedded.
-					if (embedder) {
-						if (initial_position != WINDOW_INITIAL_POSITION_ABSOLUTE) {
-							position = (embedder->get_visible_rect().size - size) / 2;
-						}
-						embedder->_sub_window_register(this);
-						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_PARENT_VISIBLE);
-						_update_window_size();
-					}
-
-				} else {
-					if (!get_parent()) {
-						// It's the root window!
-						visible = true; // Always visible.
-						window_id = DisplayServer::MAIN_WINDOW_ID;
-						DisplayServer::get_singleton()->window_attach_instance_id(get_instance_id(), window_id);
-						_update_from_window();
-						// Since this window already exists (created on start), we must update pos and size from it.
-						{
-							position = DisplayServer::get_singleton()->window_get_position(window_id);
-							size = DisplayServer::get_singleton()->window_get_size(window_id);
-							focused = DisplayServer::get_singleton()->window_is_focused(window_id);
-						}
-						_update_window_size(); // Inform DisplayServer of minimum and maximum size.
-						_update_viewport_size(); // Then feed back to the viewport.
-						_update_window_callbacks();
-						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_WHEN_VISIBLE);
-					} else {
-						// Create.
-						if (visible) {
-							_make_window();
-						}
-					}
-				}
-
-				if (transient) {
-					_make_transient();
-				}
-				if (visible) {
-					notification(NOTIFICATION_VISIBILITY_CHANGED);
-					emit_signal(SceneStringNames::get_singleton()->visibility_changed);
-					RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
-				}
-
-	#ifdef TOOLS_ENABLED
-				if (is_part_of_edited_scene()) {
-					// Don't translate Windows on scene when inside editor.
-					set_message_translation(false);
-					notification(NOTIFICATION_TRANSLATION_CHANGED);
-				}
-	#endif
-
-				// Emits NOTIFICATION_THEME_CHANGED internally.
-				set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
 			}
+
+#ifdef TOOLS_ENABLED
+			if (is_part_of_edited_scene()) {
+				// Don't translate Windows on scene when inside editor.
+				set_message_translation(false);
+				notification(NOTIFICATION_TRANSLATION_CHANGED);
+			}
+#endif
+
+			// Emits NOTIFICATION_THEME_CHANGED internally.
+			set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
 		} break;
 
 		case NOTIFICATION_READY: {
@@ -1320,40 +1319,32 @@ void Window::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_EXIT_TREE: {
-			if (native_window_handle) {
-				if (window_id == DisplayServer::INVALID_WINDOW_ID) {
-					window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
-				}
-				notification(NOTIFICATION_VISIBILITY_CHANGED);
-				emit_signal(SceneStringNames::get_singleton()->visibility_changed);
-				RS::get_singleton()->viewport_set_active(get_viewport_rid(), true);
-				// Emits NOTIFICATION_THEME_CHANGED internally.
-				set_theme_context(ThemeDB::get_singleton()->get_nearest_theme_context(this));
-			} else {
-				set_theme_context(nullptr, false);
+			set_theme_context(nullptr, false);
 
-				if (transient) {
-					_clear_transient();
-				}
-
-				if (!is_embedded() && window_id != DisplayServer::INVALID_WINDOW_ID) {
-					if (window_id == DisplayServer::MAIN_WINDOW_ID) {
-						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
-						_update_window_callbacks();
-					} else {
-						_clear_window();
-					}
-				} else {
-					if (embedder) {
-						embedder->_sub_window_remove(this);
-						embedder = nullptr;
-						RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
-					}
-					_update_viewport_size(); //called by clear and make, which does not happen here
-				}
-
-				RS::get_singleton()->viewport_set_active(get_viewport_rid(), false);
+			if (transient) {
+				_clear_transient();
 			}
+
+			if (!is_embedded() && window_id != DisplayServer::INVALID_WINDOW_ID) {
+				if (window_id == DisplayServer::MAIN_WINDOW_ID || native_window_handle) {
+					if (native_window_handle) {
+						DisplayServer::get_singleton()->release_external_window(window_id);
+					}
+					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
+					_update_window_callbacks();
+				} else {
+					_clear_window();
+				}
+			} else {
+				if (embedder) {
+					embedder->_sub_window_remove(this);
+					embedder = nullptr;
+					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
+				}
+				_update_viewport_size(); //called by clear and make, which does not happen here
+			}
+
+			RS::get_singleton()->viewport_set_active(get_viewport_rid(), false);
 		} break;
 
 		case NOTIFICATION_VP_MOUSE_ENTER: {
@@ -2848,6 +2839,9 @@ void Window::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("popup_exclusive_centered", "from_node", "minsize"), &Window::popup_exclusive_centered, DEFVAL(Size2i()));
 	ClassDB::bind_method(D_METHOD("popup_exclusive_centered_ratio", "from_node", "ratio"), &Window::popup_exclusive_centered_ratio, DEFVAL(0.8));
 	ClassDB::bind_method(D_METHOD("popup_exclusive_centered_clamped", "from_node", "minsize", "fallback_ratio"), &Window::popup_exclusive_centered_clamped, DEFVAL(Size2i()), DEFVAL(0.75));
+
+	ClassDB::bind_method(D_METHOD("init_from_native", "native_window_handle"), &Window::init_from_native);
+	ClassDB::bind_method(D_METHOD("release_native"), &Window::release_native);
 
 	// Keep the enum values in sync with the `Mode` enum.
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Windowed,Minimized,Maximized,Fullscreen,Exclusive Fullscreen"), "set_mode", "get_mode");

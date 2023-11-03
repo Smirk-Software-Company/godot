@@ -460,6 +460,10 @@ void DisplayServer::stop_render_external_window(DisplayServer::WindowID p_id) {
 	ERR_FAIL_MSG("Native windows not supported by this display server.");
 }
 
+int DisplayServer::get_screen_native_id(WindowID p_id) {
+	return 0;
+}
+
 void DisplayServer::show_window(WindowID p_id) {
 	ERR_FAIL_MSG("Sub-windows not supported by this display server.");
 }

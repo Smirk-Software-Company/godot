@@ -3110,9 +3110,11 @@ bool Main::start() {
 	}
 
 	OS::get_singleton()->set_main_loop(main_loop);
-	Window* root_window = Object::cast_to<Window>(sml->get_root());
-	if (root_window) {
-		window_id = root_window->get_window_id();
+	if (sml) {
+		Window* root_window = Object::cast_to<Window>(sml->get_root());
+		if (root_window) {
+			window_id = root_window->get_window_id();
+		}
 	}
 
 	if (sml) {
@@ -3524,7 +3526,6 @@ static uint64_t process_max = 0;
 static uint64_t navigation_process_max = 0;
 
 bool Main::iteration() {
-	DisplayServer::get_singleton()->start_render_external_window(window_id);
 	//for now do not error on this
 	//ERR_FAIL_COND_V(iterating, false);
 
@@ -3702,8 +3703,6 @@ bool Main::iteration() {
 	if ((quit_after > 0) && (Engine::get_singleton()->_process_frames >= quit_after)) {
 		exit = true;
 	}
-
-	DisplayServer::get_singleton()->stop_render_external_window(window_id);
 
 	if (fixed_fps != -1) {
 		return exit;

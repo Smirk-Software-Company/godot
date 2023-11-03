@@ -40,9 +40,6 @@
 
 #import <AudioToolbox/AudioServices.h>
 #import <GameController/GameController.h>
-#import <OpenGLES/EAGL.h>
-#import <OpenGLES/ES1/gl.h>
-#import <OpenGLES/ES1/glext.h>
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 
@@ -179,15 +176,11 @@ static EAGLContext *context = nullptr;
 		return NO;
 	}
 
-	GLES3::TextureStorage::system_fbo = viewFramebuffer;
-
 	return YES;
 }
 
 // Clean up any buffers we have allocated.
 - (void)destroyFramebuffer {
-	GLES3::TextureStorage::system_fbo = 0;
-
 	glDeleteFramebuffersOES(1, &viewFramebuffer);
 	viewFramebuffer = 0;
 	glDeleteRenderbuffersOES(1, &viewRenderbuffer);
@@ -197,6 +190,10 @@ static EAGLContext *context = nullptr;
 		glDeleteRenderbuffersOES(1, &depthRenderbuffer);
 		depthRenderbuffer = 0;
 	}
+}
+
+- (GLuint)fbo {
+	return viewFramebuffer;
 }
 
 @end

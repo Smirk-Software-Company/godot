@@ -31,6 +31,10 @@
 #import <OpenGLES/EAGLDrawable.h>
 #import <QuartzCore/QuartzCore.h>
 
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/ES1/gl.h>
+#import <OpenGLES/ES1/glext.h>
+
 @protocol DisplayLayer <NSObject>
 
 + (void)initializeCommon;
@@ -55,5 +59,7 @@ API_AVAILABLE(ios(13.0))
 @end
 
 @interface GodotOpenGLLayer : CAEAGLLayer <DisplayLayer>
+
+- (GLuint)fbo;
 
 @end

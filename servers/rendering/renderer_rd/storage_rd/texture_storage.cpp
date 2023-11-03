@@ -3330,6 +3330,9 @@ bool TextureStorage::render_target_get_transparent(RID p_render_target) const {
 void TextureStorage::render_target_set_direct_to_screen(RID p_render_target, bool p_value) {
 }
 
+void TextureStorage::render_target_set_screen_native_id(RID p_render_target, int p_screen_id) {
+}
+
 bool TextureStorage::render_target_get_direct_to_screen(RID p_render_target) const {
 	return false;
 }

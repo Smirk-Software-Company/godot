@@ -714,6 +714,7 @@ public:
 	virtual bool render_target_get_transparent(RID p_render_target) const override;
 	virtual void render_target_set_direct_to_screen(RID p_render_target, bool p_direct_to_screen) override;
 	virtual bool render_target_get_direct_to_screen(RID p_render_target) const override;
+	virtual void render_target_set_screen_native_id(RID p_render_target, int p_screen_id) override;
 	virtual bool render_target_was_used(RID p_render_target) const override;
 	virtual void render_target_set_as_unused(RID p_render_target) override;
 	virtual void render_target_set_msaa(RID p_render_target, RS::ViewportMSAA p_msaa) override;

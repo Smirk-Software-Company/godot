@@ -110,6 +110,7 @@ public:
 	virtual void release_external_window(WindowID p_id) override;
 	virtual void start_render_external_window(WindowID p_id) override;
 	virtual void stop_render_external_window(WindowID p_id) override;
+	virtual int get_screen_native_id(WindowID p_id) override;
 
 	virtual void window_set_rect_changed_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual void window_set_window_event_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;
