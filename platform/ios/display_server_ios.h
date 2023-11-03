@@ -100,6 +100,8 @@ public:
 	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	static Vector<String> get_rendering_drivers_func();
 
+	CALayer<DisplayLayer> *create_rendering_layer(const String &p_rendering_driver, void* p_native_handle, bool initCommon = false);
+
 	// MARK: - Events
 
 	virtual void process_events() override;

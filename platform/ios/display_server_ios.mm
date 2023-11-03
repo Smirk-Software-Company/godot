@@ -44,7 +44,7 @@ DisplayServerIOS *DisplayServerIOS::get_singleton() {
 	return (DisplayServerIOS *)DisplayServer::get_singleton();
 }
 
-static CALayer<DisplayLayer> *create_rendering_layer(const String &p_rendering_driver, void* p_native_handle, bool initCommon = false) {
+CALayer<DisplayLayer> *DisplayServerIOS::create_rendering_layer(const String &p_rendering_driver, void* p_native_handle, bool initCommon) {
 	CALayer *view_layer = CFBridgingRelease(p_native_handle);
 
 	CALayer<DisplayLayer> *layer = nullptr;
@@ -75,7 +75,7 @@ static CALayer<DisplayLayer> *create_rendering_layer(const String &p_rendering_d
 	}
 
 	layer.frame = view_layer.frame;
-	layer.contentsScale = view_layer.contentsScale;
+	layer.contentsScale = screen_get_max_scale();
 
 	[layer initializeDisplayLayer];
 
