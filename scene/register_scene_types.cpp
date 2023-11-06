@@ -137,6 +137,7 @@
 #include "scene/main/multiplayer_api.h"
 #include "scene/main/resource_preloader.h"
 #include "scene/main/scene_tree.h"
+#include "scene/main/multi_scene_tree.h"
 #include "scene/main/timer.h"
 #include "scene/main/viewport.h"
 #include "scene/main/window.h"
@@ -973,6 +974,7 @@ void register_scene_types() {
 
 	GDREGISTER_CLASS(SceneTree);
 	GDREGISTER_ABSTRACT_CLASS(SceneTreeTimer); // sorry, you can't create it
+	GDREGISTER_CLASS(MultiSceneTree);
 
 #ifndef DISABLE_DEPRECATED
 	// Dropped in 4.0, near approximation.

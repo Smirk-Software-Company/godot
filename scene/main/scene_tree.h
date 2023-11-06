@@ -48,6 +48,7 @@ class MultiplayerAPI;
 class SceneDebugger;
 class Tween;
 class Viewport;
+class MultiSceneTree;
 
 class SceneTreeTimer : public RefCounted {
 	GDCLASS(SceneTreeTimer, RefCounted);
@@ -203,6 +204,7 @@ private:
 
 	static SceneTree *singleton;
 	friend class Node;
+	friend class MultiSceneTree;
 
 	void tree_changed();
 	void node_added(Node *p_node);
