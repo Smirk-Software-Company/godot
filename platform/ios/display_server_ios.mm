@@ -242,7 +242,13 @@ DisplayServer::WindowID DisplayServerIOS::wrap_external_window(void* p_native_ha
 }
 
 void DisplayServerIOS::release_external_window(DisplayServer::WindowID p_id) {
-	context_vulkan->window_destroy(p_id);
+	if (rendering_driver == "vulkan") {
+#if defined(VULKAN_ENABLED)
+		context_vulkan->window_destroy(p_id);
+#else
+		ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Rendering driver 'vulkan' not enabled.");
+#endif
+	}
 	[layers removeObjectForKey:[NSNumber numberWithInt:p_id]];
 	window_ids.erase(p_id);
 }

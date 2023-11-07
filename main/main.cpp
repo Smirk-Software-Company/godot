@@ -59,7 +59,7 @@
 #include "main/splash.gen.h"
 #include "modules/register_module_types.h"
 #include "platform/register_platform_apis.h"
-#include "scene/main/multi_scene_tree.h"
+#include "scene/main/scene_tree.h"
 #include "scene/main/window.h"
 #include "scene/register_scene_types.h"
 #include "scene/resources/packed_scene.h"
@@ -3022,7 +3022,7 @@ bool Main::start() {
 
 	MainLoop *main_loop = nullptr;
 	if (editor) {
-		main_loop = memnew(MultiSceneTree);
+		main_loop = memnew(SceneTree);
 	}
 	if (main_loop_type.is_empty()) {
 		main_loop_type = GLOBAL_GET("application/run/main_loop_type");
@@ -3082,7 +3082,7 @@ bool Main::start() {
 	}
 
 	if (!main_loop && main_loop_type.is_empty()) {
-		main_loop_type = "MultiSceneTree";
+		main_loop_type = "SceneTree";
 	}
 
 	if (!main_loop) {
