@@ -183,7 +183,7 @@ void DisplayServerIOS::register_ios_driver() {
 // MARK: Events
 
 void DisplayServerIOS::window_set_rect_changed_callback(const Callable &p_callable, WindowID p_window) {
-	window_resize_callback = p_callable;
+	window_resize_callbacks[p_window] = p_callable;
 }
 
 void DisplayServerIOS::window_set_window_event_callback(const Callable &p_callable, WindowID p_window) {
@@ -261,6 +261,22 @@ void DisplayServerIOS::start_render_external_window(WindowID p_id) {
 void DisplayServerIOS::stop_render_external_window(WindowID p_id) {
 	CALayer<DisplayLayer> *layer = [layers objectForKey:[NSNumber numberWithInt:p_id]];
 	[layer stopRenderDisplayLayer];
+}
+
+void DisplayServerIOS::resize_external_window(Vector2 p_view_size, DisplayServer::WindowID p_id) {
+	Vector2 size = p_view_size * screen_get_max_scale();
+
+	CALayer<DisplayLayer> *layer = [layers objectForKey:[NSNumber numberWithInt:p_id]];
+	[layer layoutDisplayLayer];
+
+#if defined(VULKAN_ENABLED)
+	if (context_vulkan) {
+		context_vulkan->window_resize(p_id, size.x, size.y);
+	}
+#endif
+
+	Variant resize_rect = Rect2i(Point2i(), size);
+	_window_callback(window_resize_callbacks[p_id], resize_rect);
 }
 
 int DisplayServerIOS::get_screen_native_id(WindowID p_id) {

@@ -1013,6 +1013,8 @@ void Window::_update_viewport_size() {
 	float font_oversampling = 1.0;
 	window_transform = Transform2D();
 
+	RS::get_singleton()->viewport_set_screen_native_id(get_viewport_rid(), DisplayServer::get_singleton()->get_screen_native_id(window_id));
+
 	if (content_scale_stretch == Window::CONTENT_SCALE_STRETCH_INTEGER) {
 		// We always want to make sure that the content scale factor is a whole
 		// number, else there will be pixel wobble no matter what.
@@ -1234,7 +1236,6 @@ void Window::_notification(int p_what) {
 					} else {
 						window_id = DisplayServer::MAIN_WINDOW_ID;
 					}
-					RS::get_singleton()->viewport_set_screen_native_id(get_viewport_rid(), DisplayServer::get_singleton()->get_screen_native_id(window_id));
 					DisplayServer::get_singleton()->window_attach_instance_id(get_instance_id(), window_id);
 					_update_from_window();
 					// Since this window already exists (created on start), we must update pos and size from it.

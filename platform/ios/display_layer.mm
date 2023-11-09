@@ -120,7 +120,10 @@ static EAGLContext *context = nullptr;
 - (void)layoutDisplayLayer {
 	[EAGLContext setCurrentContext:context];
 	[self destroyFramebuffer];
-	[self createFramebuffer];
+	if (![self createFramebuffer]) {
+		NSLog(@"Failed to create frame buffer!");
+		return;
+	}
 }
 
 - (void)startRenderDisplayLayer {

@@ -366,6 +366,7 @@ public:
 	virtual void release_external_window(WindowID p_id);
 	virtual void start_render_external_window(WindowID p_id);
 	virtual void stop_render_external_window(WindowID p_id);
+	virtual void resize_external_window(Vector2 p_view_size, WindowID p_id);
 	virtual int get_screen_native_id(WindowID p_id);
 	virtual void show_window(WindowID p_id);
 	virtual void delete_sub_window(WindowID p_id);

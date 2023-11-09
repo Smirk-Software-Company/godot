@@ -1421,6 +1421,10 @@ bool InputEventScreenDrag::accumulate(const Ref<InputEvent> &p_event) {
 		return false;
 	}
 
+	if (get_window_id() != drag->get_window_id()) {
+		return false;
+	}
+
 	if (get_index() != drag->get_index()) {
 		return false;
 	}

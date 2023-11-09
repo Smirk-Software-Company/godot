@@ -445,19 +445,23 @@ DisplayServer::WindowID DisplayServer::create_sub_window(WindowMode p_mode, VSyn
 }
 
 DisplayServer::WindowID DisplayServer::wrap_external_window(void* p_native_handle) {
-	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Native windows not supported by this display server.");
+	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "External windows not supported by this display server.");
 }
 
 void DisplayServer::release_external_window(DisplayServer::WindowID p_id) {
-	ERR_FAIL_MSG("Native windows not supported by this display server.");
+	ERR_FAIL_MSG("External windows not supported by this display server.");
 }
 
 void DisplayServer::start_render_external_window(DisplayServer::WindowID p_id) {
-	ERR_FAIL_MSG("Native windows not supported by this display server.");
+	ERR_FAIL_MSG("External windows not supported by this display server.");
 }
 
 void DisplayServer::stop_render_external_window(DisplayServer::WindowID p_id) {
-	ERR_FAIL_MSG("Native windows not supported by this display server.");
+	ERR_FAIL_MSG("External windows not supported by this display server.");
+}
+
+void DisplayServer::resize_external_window(Vector2 p_view_size, WindowID p_id) {
+	ERR_FAIL_MSG("External windows not supported by this display server.");
 }
 
 int DisplayServer::get_screen_native_id(WindowID p_id) {
@@ -860,6 +864,8 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("key", "key", "char", "unshifted", "physical", "modifiers", "pressed", "window"), &DisplayServer::key);
 
 	ClassDB::bind_method(D_METHOD("send_window_event", "event", "window", "deferred"), &DisplayServer::send_window_event);
+
+	ClassDB::bind_method(D_METHOD("resize_external_window", "view_size", "id"), &DisplayServer::resize_external_window);
 
 	BIND_ENUM_CONSTANT(FEATURE_GLOBAL_MENU);
 	BIND_ENUM_CONSTANT(FEATURE_SUBWINDOWS);
