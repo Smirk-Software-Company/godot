@@ -762,11 +762,11 @@ void DisplayServerWeb::_vk_input_text_callback(const String &p_text, int p_curso
 	}
 }
 
-void DisplayServerWeb::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_input_length, int p_cursor_start, int p_cursor_end) {
+void DisplayServerWeb::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_input_length, int p_cursor_start, int p_cursor_end, DisplayServer::WindowID p_window) {
 	godot_js_display_vk_show(p_existing_text.utf8().get_data(), p_type, p_cursor_start, p_cursor_end);
 }
 
-void DisplayServerWeb::virtual_keyboard_hide() {
+void DisplayServerWeb::virtual_keyboard_hide(DisplayServer::WindowID p_window) {
 	godot_js_display_vk_hide();
 }
 

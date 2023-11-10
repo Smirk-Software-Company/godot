@@ -478,7 +478,7 @@ void LineEdit::gui_input(const Ref<InputEvent> &p_event) {
 		if (k->is_action("ui_text_submit", false)) {
 			emit_signal(SNAME("text_submitted"), text);
 			if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_VIRTUAL_KEYBOARD) && virtual_keyboard_enabled) {
-				DisplayServer::get_singleton()->virtual_keyboard_hide();
+				DisplayServer::get_singleton()->virtual_keyboard_hide(get_viewport()->get_window()->get_window_id());
 			}
 			accept_event();
 			return;
@@ -1108,7 +1108,7 @@ void LineEdit::_notification(int p_what) {
 			set_caret_column(caret_column); // Update scroll_offset.
 
 			if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_VIRTUAL_KEYBOARD) && virtual_keyboard_enabled) {
-				DisplayServer::get_singleton()->virtual_keyboard_hide();
+				DisplayServer::get_singleton()->virtual_keyboard_hide(get_viewport()->get_window()->get_window_id());
 			}
 
 			if (deselect_on_focus_loss_enabled && !selection.drag_attempt) {
@@ -1616,7 +1616,7 @@ void LineEdit::clear() {
 void LineEdit::show_virtual_keyboard() {
 	if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_VIRTUAL_KEYBOARD) && virtual_keyboard_enabled) {
 		if (selection.enabled) {
-			DisplayServer::get_singleton()->virtual_keyboard_show(text, get_global_rect(), DisplayServer::VirtualKeyboardType(virtual_keyboard_type), max_length, selection.begin, selection.end);
+			DisplayServer::get_singleton()->virtual_keyboard_show(text, get_global_rect(), DisplayServer::VirtualKeyboardType(virtual_keyboard_type), max_length, selection.begin, selection.end, get_viewport()->get_window()->get_window_id());
 		} else {
 			DisplayServer::get_singleton()->virtual_keyboard_show(text, get_global_rect(), DisplayServer::VirtualKeyboardType(virtual_keyboard_type), max_length, caret_column);
 		}

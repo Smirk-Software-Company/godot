@@ -470,8 +470,8 @@ public:
 		KEYBOARD_TYPE_URL
 	};
 
-	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect = Rect2(), VirtualKeyboardType p_type = KEYBOARD_TYPE_DEFAULT, int p_max_length = -1, int p_cursor_start = -1, int p_cursor_end = -1);
-	virtual void virtual_keyboard_hide();
+	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect = Rect2(), VirtualKeyboardType p_type = KEYBOARD_TYPE_DEFAULT, int p_max_length = -1, int p_cursor_start = -1, int p_cursor_end = -1, DisplayServer::WindowID p_window = MAIN_WINDOW_ID);
+	virtual void virtual_keyboard_hide(DisplayServer::WindowID p_window = MAIN_WINDOW_ID);
 
 	// returns height of the currently shown virtual keyboard (0 if keyboard is hidden)
 	virtual int virtual_keyboard_get_height() const;
@@ -548,7 +548,7 @@ public:
 
 	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const;
 
-	bool is_keyboard_active() const;
+	virtual bool is_keyboard_active(DisplayServer::WindowID p_window = MAIN_WINDOW_ID) const;
 
 	enum Context {
 		CONTEXT_EDITOR,

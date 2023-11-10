@@ -433,7 +433,7 @@ bool DisplayServerIOS::has_feature(Feature p_feature) const {
 		case FEATURE_KEEP_SCREEN_ON:
 		case FEATURE_ORIENTATION:
 		case FEATURE_TOUCHSCREEN:
-		// case FEATURE_VIRTUAL_KEYBOARD:
+		case FEATURE_VIRTUAL_KEYBOARD:
 		// case FEATURE_TEXT_TO_SPEECH:
 			return true;
 		default:
@@ -724,16 +724,16 @@ _FORCE_INLINE_ int _convert_utf32_offset_to_utf16(const String &p_existing_text,
 	return limit;
 }
 
-void DisplayServerIOS::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) {
-	ERR_FAIL_MSG("Virtual keyboard show not supported by DisplayServerIOS");
+void DisplayServerIOS::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, DisplayServer::WindowID p_window) {
+	active_keyboards.insert(p_window);
 }
 
-bool DisplayServerIOS::is_keyboard_active() const {
-	return false;
+bool DisplayServerIOS::is_keyboard_active(DisplayServer::WindowID p_window) const {
+	return active_keyboards.has(p_window);
 }
 
-void DisplayServerIOS::virtual_keyboard_hide() {
-	ERR_FAIL_MSG("Virtual keyboard hide not supported by DisplayServerIOS");
+void DisplayServerIOS::virtual_keyboard_hide(DisplayServer::WindowID p_window) {
+	active_keyboards.erase(p_window);
 }
 
 void DisplayServerIOS::virtual_keyboard_set_height(int height) {

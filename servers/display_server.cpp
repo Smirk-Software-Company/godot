@@ -504,12 +504,17 @@ String DisplayServer::ime_get_text() const {
 	ERR_FAIL_V_MSG(String(), "IME or NOTIFICATION_WM_IME_UPDATEnot supported by this display server.");
 }
 
-void DisplayServer::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) {
+void DisplayServer::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, DisplayServer::WindowID p_window) {
 	WARN_PRINT("Virtual keyboard not supported by this display server.");
 }
 
-void DisplayServer::virtual_keyboard_hide() {
+void DisplayServer::virtual_keyboard_hide(DisplayServer::WindowID p_window) {
 	WARN_PRINT("Virtual keyboard not supported by this display server.");
+}
+
+bool DisplayServer::is_keyboard_active(DisplayServer::WindowID p_window) const {
+	WARN_PRINT("Virtual keyboard not supported by this display server.");
+	return false;
 }
 
 // returns height of the currently shown keyboard (0 if keyboard is hidden)
@@ -821,8 +826,9 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("ime_get_selection"), &DisplayServer::ime_get_selection);
 	ClassDB::bind_method(D_METHOD("ime_get_text"), &DisplayServer::ime_get_text);
 
-	ClassDB::bind_method(D_METHOD("virtual_keyboard_show", "existing_text", "position", "type", "max_length", "cursor_start", "cursor_end"), &DisplayServer::virtual_keyboard_show, DEFVAL(Rect2()), DEFVAL(KEYBOARD_TYPE_DEFAULT), DEFVAL(-1), DEFVAL(-1), DEFVAL(-1));
-	ClassDB::bind_method(D_METHOD("virtual_keyboard_hide"), &DisplayServer::virtual_keyboard_hide);
+	ClassDB::bind_method(D_METHOD("virtual_keyboard_show", "existing_text", "position", "type", "max_length", "cursor_start", "cursor_end", "window_id"), &DisplayServer::virtual_keyboard_show, DEFVAL(Rect2()), DEFVAL(KEYBOARD_TYPE_DEFAULT), DEFVAL(-1), DEFVAL(-1), DEFVAL(-1), DEFVAL(MAIN_WINDOW_ID));
+	ClassDB::bind_method(D_METHOD("virtual_keyboard_hide", "window_id"), &DisplayServer::virtual_keyboard_hide, DEFVAL(MAIN_WINDOW_ID));
+	ClassDB::bind_method(D_METHOD("is_keyboard_active", "window_id"), &DisplayServer::is_keyboard_active, DEFVAL(MAIN_WINDOW_ID));
 
 	ClassDB::bind_method(D_METHOD("virtual_keyboard_get_height"), &DisplayServer::virtual_keyboard_get_height);
 

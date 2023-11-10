@@ -82,6 +82,7 @@ class DisplayServerIOS : public DisplayServer {
 	Callable input_text_callback;
 
 	int virtual_keyboard_height = 0;
+	HashSet<DisplayServer::WindowID> active_keyboards;
 
 	WindowID window_id_counter = 0;
 	HashSet<DisplayServer::WindowID> window_ids;
@@ -137,7 +138,7 @@ public:
 
 	virtual void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window) override;
 
-	bool is_keyboard_active() const;
+	virtual bool is_keyboard_active(DisplayServer::WindowID p_window = MAIN_WINDOW_ID) const override;
 
 	// MARK: Motion
 
@@ -231,8 +232,8 @@ public:
 
 	virtual bool is_touchscreen_available() const override;
 
-	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) override;
-	virtual void virtual_keyboard_hide() override;
+	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual void virtual_keyboard_hide(WindowID p_window = MAIN_WINDOW_ID) override;
 
 	void virtual_keyboard_set_height(int height);
 	virtual int virtual_keyboard_get_height() const override;

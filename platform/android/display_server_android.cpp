@@ -258,7 +258,7 @@ bool DisplayServerAndroid::is_touchscreen_available() const {
 	return true;
 }
 
-void DisplayServerAndroid::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) {
+void DisplayServerAndroid::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, DisplayServer::WindowID p_window) {
 	GodotIOJavaWrapper *godot_io_java = OS_Android::get_singleton()->get_godot_io_java();
 	ERR_FAIL_NULL(godot_io_java);
 
@@ -269,7 +269,7 @@ void DisplayServerAndroid::virtual_keyboard_show(const String &p_existing_text, 
 	}
 }
 
-void DisplayServerAndroid::virtual_keyboard_hide() {
+void DisplayServerAndroid::virtual_keyboard_hide(DisplayServer::WindowID p_window) {
 	GodotIOJavaWrapper *godot_io_java = OS_Android::get_singleton()->get_godot_io_java();
 	ERR_FAIL_NULL(godot_io_java);
 

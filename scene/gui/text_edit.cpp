@@ -1525,7 +1525,7 @@ void TextEdit::_notification(int p_what) {
 					caret_end = caret_start + post_text.length();
 				}
 
-				DisplayServer::get_singleton()->virtual_keyboard_show(get_text(), get_global_rect(), DisplayServer::KEYBOARD_TYPE_MULTILINE, -1, caret_start, caret_end);
+				DisplayServer::get_singleton()->virtual_keyboard_show(get_text(), get_global_rect(), DisplayServer::KEYBOARD_TYPE_MULTILINE, -1, caret_start, caret_end, get_viewport()->get_window()->get_window_id());
 			}
 		} break;
 
@@ -1547,7 +1547,7 @@ void TextEdit::_notification(int p_what) {
 			}
 
 			if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_VIRTUAL_KEYBOARD) && virtual_keyboard_enabled) {
-				DisplayServer::get_singleton()->virtual_keyboard_hide();
+				DisplayServer::get_singleton()->virtual_keyboard_hide(get_viewport()->get_window()->get_window_id());
 			}
 
 			if (deselect_on_focus_loss_enabled && !selection_drag_attempt) {
