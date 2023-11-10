@@ -38,6 +38,7 @@
 @protocol DisplayLayer <NSObject>
 
 + (void)initializeCommon;
++ (void)deinitializeCommon;
 - (void)startRenderDisplayLayer;
 - (void)stopRenderDisplayLayer;
 - (void)initializeDisplayLayer;

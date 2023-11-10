@@ -157,6 +157,23 @@ DisplayServerIOS::~DisplayServerIOS() {
 		context_vulkan = nullptr;
 	}
 #endif
+
+#if defined(VULKAN_ENABLED)
+	if (rendering_driver == "vulkan") {
+		if (@available(iOS 13, *)) {
+				[GodotMetalLayer deinitializeCommon];
+		} else {
+			ERR_FAIL_MSG("Metal not supported on iOS Simulator before iOS 13.");
+		}
+	}
+#endif
+
+#if defined(GLES3_ENABLED)
+	if (rendering_driver == "opengl3") {
+		[GodotOpenGLLayer deinitializeCommon];
+	}
+#endif
+
 }
 
 DisplayServer *DisplayServerIOS::create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle) {
@@ -267,6 +284,9 @@ void DisplayServerIOS::resize_external_window(Vector2 p_view_size, DisplayServer
 	Vector2 size = p_view_size * screen_get_max_scale();
 
 	CALayer<DisplayLayer> *layer = [layers objectForKey:[NSNumber numberWithInt:p_id]];
+
+	layer.frame = CGRectMake(0, 0, p_view_size.x, p_view_size.y);
+
 	[layer layoutDisplayLayer];
 
 #if defined(VULKAN_ENABLED)

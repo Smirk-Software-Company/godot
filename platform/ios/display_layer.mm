@@ -60,6 +60,9 @@ static EAGLContext *context = nullptr;
 #endif
 }
 
++ (void)deinitializeCommon {
+}
+
 - (void)layoutDisplayLayer {
 }
 
@@ -94,6 +97,16 @@ static EAGLContext *context = nullptr;
 	if (![EAGLContext setCurrentContext:context]) {
 		NSLog(@"Failed to set EAGLContext!");
 		return;
+	}
+}
+
++ (void)deinitializeCommon {
+	if ([EAGLContext currentContext] == context) {
+		[EAGLContext setCurrentContext:nil];
+	}
+
+	if (context) {
+		context = nil;
 	}
 }
 
@@ -145,13 +158,7 @@ static EAGLContext *context = nullptr;
 }
 
 - (void)dealloc {
-	if ([EAGLContext currentContext] == context) {
-		[EAGLContext setCurrentContext:nil];
-	}
-
-	if (context) {
-		context = nil;
-	}
+	[self destroyFramebuffer];
 }
 
 - (BOOL)createFramebuffer {
