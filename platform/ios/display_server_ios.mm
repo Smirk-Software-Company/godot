@@ -597,7 +597,7 @@ float DisplayServerIOS::screen_get_scale(int p_screen) const {
 
 Vector<DisplayServer::WindowID> DisplayServerIOS::get_window_list() const {
 	Vector<DisplayServer::WindowID> result;
-	for (const int& e : window_ids) {
+	for (const DisplayServer::WindowID& e : window_ids) {
 		result.push_back(e);
 	}
 	return result;

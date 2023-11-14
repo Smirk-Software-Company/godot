@@ -373,6 +373,18 @@ String OS_IOS::get_processor_name() const {
 	ERR_FAIL_V_MSG("", String("Couldn't get the CPU model name. Returning an empty string."));
 }
 
+void OS_IOS::set_pause(bool pause) {
+	if (pause == is_paused) {
+		return;
+	}
+	is_paused = pause;
+	if (is_paused) {
+		on_focus_out();
+	} else {
+		on_focus_in();
+	}
+}
+
 Vector<String> OS_IOS::get_system_fonts() const {
 	HashSet<String> font_names;
 	CFArrayRef fonts = CTFontManagerCopyAvailableFontFamilyNames();
@@ -605,7 +617,9 @@ void OS_IOS::on_focus_out() {
 		is_focused = false;
 
 		if (DisplayServerIOS::get_singleton()) {
-			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT, DisplayServer::MAIN_WINDOW_ID);
+			for (const DisplayServer::WindowID& window_id : DisplayServerIOS::get_singleton()->get_window_list()) {
+				DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_OUT, window_id);
+			}
 		}
 
 		// Disabled for embedding
@@ -620,7 +634,9 @@ void OS_IOS::on_focus_in() {
 		is_focused = true;
 
 		if (DisplayServerIOS::get_singleton()) {
-			DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN, DisplayServer::MAIN_WINDOW_ID);
+			for (const DisplayServer::WindowID& window_id : DisplayServerIOS::get_singleton()->get_window_list()) {
+				DisplayServerIOS::get_singleton()->send_window_event(DisplayServer::WINDOW_EVENT_FOCUS_IN, window_id);
+			}
 		}
 
 		// Disabled for embedding
