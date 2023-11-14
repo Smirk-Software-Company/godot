@@ -960,6 +960,13 @@ void RendererViewport::viewport_set_active(RID p_viewport, bool p_active) {
 	sorted_active_viewports_dirty = true;
 }
 
+bool RendererViewport::viewport_is_active(RID p_viewport) const {
+	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
+	ERR_FAIL_NULL_V(viewport, false);
+
+	return active_viewports.has(viewport);
+}
+
 void RendererViewport::viewport_set_parent_viewport(RID p_viewport, RID p_parent_viewport) {
 	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
 	ERR_FAIL_NULL(viewport);

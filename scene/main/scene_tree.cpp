@@ -877,6 +877,10 @@ Ref<ArrayMesh> SceneTree::get_debug_contact_mesh() {
 	return debug_contact_mesh;
 }
 
+void SceneTree::set_pause_effects_physics(bool p_pause_physics) {
+	pause_effects_physics = p_pause_physics;
+}
+
 void SceneTree::set_pause(bool p_enabled) {
 	ERR_FAIL_COND_MSG(!Thread::is_main_thread(), "Pause can only be set from the main thread.");
 
@@ -884,8 +888,10 @@ void SceneTree::set_pause(bool p_enabled) {
 		return;
 	}
 	paused = p_enabled;
-	PhysicsServer3D::get_singleton()->set_active(!p_enabled);
-	PhysicsServer2D::get_singleton()->set_active(!p_enabled);
+	if (pause_effects_physics) {
+		PhysicsServer3D::get_singleton()->set_active(!p_enabled);
+		PhysicsServer2D::get_singleton()->set_active(!p_enabled);
+	}
 	if (get_root()) {
 		get_root()->_propagate_pause_notification(p_enabled);
 	}
@@ -1581,7 +1587,8 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_edited_scene_root", "scene"), &SceneTree::set_edited_scene_root);
 	ClassDB::bind_method(D_METHOD("get_edited_scene_root"), &SceneTree::get_edited_scene_root);
 
-	ClassDB::bind_method(D_METHOD("set_pause", "enable"), &SceneTree::set_pause);
+	ClassDB::bind_method(D_METHOD("set_pause_effects_physics", "pause_physics"), &SceneTree::set_pause_effects_physics);
+	ClassDB::bind_method(D_METHOD("set_pause", "enable"), &SceneTree::set_pause, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("is_paused"), &SceneTree::is_paused);
 
 	ClassDB::bind_method(D_METHOD("create_timer", "time_sec", "process_always", "process_in_physics", "ignore_time_scale"), &SceneTree::create_timer, DEFVAL(true), DEFVAL(false), DEFVAL(false));

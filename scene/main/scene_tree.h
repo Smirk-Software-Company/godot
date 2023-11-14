@@ -135,6 +135,7 @@ private:
 #endif
 	bool paused = false;
 	int root_lock = 0;
+	bool pause_effects_physics = true;
 
 	HashMap<StringName, Group> group_map;
 	bool _quit = false;
@@ -335,6 +336,7 @@ public:
 	bool is_node_being_edited(const Node *p_node) const { return false; }
 #endif
 
+	void set_pause_effects_physics(bool p_pause_physics);
 	void set_pause(bool p_enabled);
 	bool is_paused() const;
 

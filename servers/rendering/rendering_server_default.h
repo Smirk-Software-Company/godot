@@ -603,6 +603,7 @@ public:
 	FUNC2(viewport_set_use_xr, RID, bool)
 	FUNC3(viewport_set_size, RID, int, int)
 
+	FUNC1RC(bool, viewport_is_active, RID)
 	FUNC2(viewport_set_active, RID, bool)
 	FUNC2(viewport_set_parent_viewport, RID, RID)
 

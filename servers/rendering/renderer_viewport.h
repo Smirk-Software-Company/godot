@@ -225,6 +225,7 @@ public:
 	void viewport_set_render_direct_to_screen(RID p_viewport, bool p_enable);
 	void viewport_set_screen_native_id(RID p_viewport, int screen_id);
 
+	bool viewport_is_active(RID p_viewport) const;
 	void viewport_set_active(RID p_viewport, bool p_active);
 	void viewport_set_parent_viewport(RID p_viewport, RID p_parent_viewport);
 
