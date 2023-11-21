@@ -188,6 +188,8 @@ public:
 
 	String get_unique_id() const;
 
+	void set_pause(bool pause);
+
 	String get_keycode_string(Key p_code) const;
 	bool is_keycode_unicode(char32_t p_unicode) const;
 	Key find_keycode_from_string(const String &p_code) const;

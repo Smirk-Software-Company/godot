@@ -2,32 +2,42 @@
 
 Import("env")
 
-ios_lib = [
-    "godot_ios.mm",
+common_ios_lib_files = [
     "os_ios.mm",
+    "vulkan_context_ios.mm",
+    "display_server_ios.mm",
+    "display_layer.mm",
+    "device_metrics.m",
+]
+
+ios_lib_files = [
     "main.m",
     "app_delegate.mm",
     "view_controller.mm",
     "ios.mm",
-    "vulkan_context_ios.mm",
-    "display_server_ios.mm",
     "joypad_ios.mm",
     "godot_view.mm",
     "tts_ios.mm",
-    "display_layer.mm",
     "godot_app_delegate.m",
     "godot_view_renderer.mm",
-    "device_metrics.m",
     "keyboard_input_view.mm",
     "key_mapping_ios.mm",
+    "godot_ios.mm",
+]
+
+ios_shared_lib_files = [
+    "godot_runtime_api_ios.mm"
 ]
 
 env_ios = env.Clone()
-ios_lib = env_ios.add_library("ios", ios_lib)
 
 # (iOS) Enable module support
 env_ios.Append(CCFLAGS=["-fmodules", "-fcxx-modules"])
 
+if env["shared_library"]:
+    ios_lib = env_ios.add_library("ios", common_ios_lib_files + ios_shared_lib_files)
+else:
+    ios_lib = env_ios.add_library("ios", common_ios_lib_files + ios_lib_files)
 
 def combine_libs(target=None, source=None, env=None):
     lib_path = target[0].srcnode().abspath
@@ -36,8 +46,7 @@ def combine_libs(target=None, source=None, env=None):
     else:
         libtool = "$IOS_TOOLCHAIN_PATH/usr/bin/libtool"
     env.Execute(
-        libtool + ' -static -o "' + lib_path + '" ' + " ".join([('"' + lib.srcnode().abspath + '"') for lib in source])
+        libtool + ' -static -a -o "' + lib_path + '" ' + " ".join([('"' + lib.srcnode().abspath + '"') for lib in source])
     )
-
 
 combine_command = env_ios.Command("#bin/libgodot" + env_ios["LIBSUFFIX"], [ios_lib] + env_ios["LIBS"], combine_libs)

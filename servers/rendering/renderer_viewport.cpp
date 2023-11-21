@@ -722,6 +722,8 @@ void RendererViewport::draw_viewports(bool p_swap_buffers) {
 			continue; //should not draw
 		}
 
+		DisplayServer::get_singleton()->start_render_external_window(vp->viewport_to_screen);
+
 		RENDER_TIMESTAMP("> Render Viewport " + itos(i));
 
 		RSG::texture_storage->render_target_set_as_unused(vp->render_target);
@@ -804,6 +806,9 @@ void RendererViewport::draw_viewports(bool p_swap_buffers) {
 		objects_drawn += vp->render_info.info[RS::VIEWPORT_RENDER_INFO_TYPE_VISIBLE][RS::VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME] + vp->render_info.info[RS::VIEWPORT_RENDER_INFO_TYPE_SHADOW][RS::VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME];
 		vertices_drawn += vp->render_info.info[RS::VIEWPORT_RENDER_INFO_TYPE_VISIBLE][RS::VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME] + vp->render_info.info[RS::VIEWPORT_RENDER_INFO_TYPE_SHADOW][RS::VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME];
 		draw_calls_used += vp->render_info.info[RS::VIEWPORT_RENDER_INFO_TYPE_VISIBLE][RS::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME] + vp->render_info.info[RS::VIEWPORT_RENDER_INFO_TYPE_SHADOW][RS::VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME];
+
+		DisplayServer::get_singleton()->stop_render_external_window(vp->viewport_to_screen);
+
 	}
 	RSG::scene->set_debug_draw_mode(RS::VIEWPORT_DEBUG_DRAW_DISABLED);
 
@@ -818,7 +823,9 @@ void RendererViewport::draw_viewports(bool p_swap_buffers) {
 		RSG::rasterizer->prepare_for_blitting_render_targets();
 
 		for (const KeyValue<int, Vector<BlitToScreen>> &E : blit_to_screen_list) {
+			DisplayServer::get_singleton()->start_render_external_window(E.key);
 			RSG::rasterizer->blit_render_targets_to_screen(E.key, E.value.ptr(), E.value.size());
+			DisplayServer::get_singleton()->stop_render_external_window(E.key);
 		}
 	}
 }
@@ -953,6 +960,13 @@ void RendererViewport::viewport_set_active(RID p_viewport, bool p_active) {
 	sorted_active_viewports_dirty = true;
 }
 
+bool RendererViewport::viewport_is_active(RID p_viewport) const {
+	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
+	ERR_FAIL_NULL_V(viewport, false);
+
+	return active_viewports.has(viewport);
+}
+
 void RendererViewport::viewport_set_parent_viewport(RID p_viewport, RID p_parent_viewport) {
 	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
 	ERR_FAIL_NULL(viewport);
@@ -972,8 +986,8 @@ void RendererViewport::viewport_attach_to_screen(RID p_viewport, const Rect2 &p_
 	ERR_FAIL_NULL(viewport);
 
 	if (p_screen != DisplayServer::INVALID_WINDOW_ID) {
-		// If using OpenGL we can optimize this operation by rendering directly to system_fbo
-		// instead of rendering to fbo and copying to system_fbo after
+		// If using OpenGL we can optimize this operation by rendering directly to screen_fbo
+		// instead of rendering to fbo and copying to screen_fbo after
 		if (RSG::rasterizer->is_low_end() && viewport->viewport_render_direct_to_screen) {
 			RSG::texture_storage->render_target_set_size(viewport->render_target, p_rect.size.x, p_rect.size.y, viewport->view_count);
 			RSG::texture_storage->render_target_set_position(viewport->render_target, p_rect.position.x, p_rect.position.y);
@@ -1015,6 +1029,13 @@ void RendererViewport::viewport_set_render_direct_to_screen(RID p_viewport, bool
 		RSG::texture_storage->render_target_set_size(viewport->render_target, viewport->viewport_to_screen_rect.size.x, viewport->viewport_to_screen_rect.size.y, viewport->view_count);
 		RSG::texture_storage->render_target_set_position(viewport->render_target, viewport->viewport_to_screen_rect.position.x, viewport->viewport_to_screen_rect.position.y);
 	}
+}
+
+void RendererViewport::viewport_set_screen_native_id(RID p_viewport, int screen_id) {
+	Viewport *viewport = viewport_owner.get_or_null(p_viewport);
+	ERR_FAIL_NULL(viewport);
+
+	RSG::texture_storage->render_target_set_screen_native_id(viewport->render_target, screen_id);
 }
 
 void RendererViewport::viewport_set_update_mode(RID p_viewport, RS::ViewportUpdateMode p_mode) {

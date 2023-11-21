@@ -2265,7 +2265,7 @@ Error _parse_resource_dummy(void *p_data, VariantParser::Stream *p_stream, Ref<R
 	return OK;
 }
 
-Error Main::setup2() {
+Error Main::setup2(uint64_t native_main_window_handle) {
 	Thread::make_main_thread(); // Make whatever thread call this the main thread.
 	set_current_thread_safe_for_nodes(true);
 
@@ -2375,7 +2375,7 @@ Error Main::setup2() {
 
 		// rendering_driver now held in static global String in main and initialized in setup()
 		Error err;
-		display_server = DisplayServer::create(display_driver_idx, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err);
+		display_server = DisplayServer::create(display_driver_idx, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err, native_main_window_handle);
 		if (err != OK || display_server == nullptr) {
 			// We can't use this display server, try other ones as fallback.
 			// Skip headless (always last registered) because that's not what users
@@ -2384,7 +2384,7 @@ Error Main::setup2() {
 				if (i == display_driver_idx) {
 					continue; // Don't try the same twice.
 				}
-				display_server = DisplayServer::create(i, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err);
+				display_server = DisplayServer::create(i, rendering_driver, window_mode, window_vsync_mode, window_flags, window_position, window_size, init_screen, err, native_main_window_handle);
 				if (err == OK && display_server != nullptr) {
 					break;
 				}
@@ -2522,8 +2522,8 @@ Error Main::setup2() {
 	if (show_logo) { //boot logo!
 		const bool boot_logo_image = GLOBAL_DEF_BASIC("application/boot_splash/show_image", true);
 		const String boot_logo_path = String(GLOBAL_DEF_BASIC(PropertyInfo(Variant::STRING, "application/boot_splash/image", PROPERTY_HINT_FILE, "*.png"), String())).strip_edges();
-		const bool boot_logo_scale = GLOBAL_DEF_BASIC("application/boot_splash/fullsize", true);
-		const bool boot_logo_filter = GLOBAL_DEF_BASIC("application/boot_splash/use_filter", true);
+		//const bool boot_logo_scale = GLOBAL_DEF_BASIC("application/boot_splash/fullsize", true);
+		//const bool boot_logo_filter = GLOBAL_DEF_BASIC("application/boot_splash/use_filter", true);
 
 		Ref<Image> boot_logo;
 
@@ -2550,8 +2550,8 @@ Error Main::setup2() {
 						(editor || project_manager) ? boot_splash_editor_bg_color : boot_splash_bg_color);
 #endif
 		if (boot_logo.is_valid()) {
-			RenderingServer::get_singleton()->set_boot_image(boot_logo, boot_bg_color, boot_logo_scale,
-					boot_logo_filter);
+//			RenderingServer::get_singleton()->set_boot_image(boot_logo, boot_bg_color, boot_logo_scale,
+//					boot_logo_filter);
 
 		} else {
 #ifndef NO_DEFAULT_BOOT_LOGO
@@ -2565,7 +2565,7 @@ Error Main::setup2() {
 			MAIN_PRINT("Main: ClearColor");
 			RenderingServer::get_singleton()->set_default_clear_color(boot_bg_color);
 			MAIN_PRINT("Main: Image");
-			RenderingServer::get_singleton()->set_boot_image(splash, boot_bg_color, false);
+//			RenderingServer::get_singleton()->set_boot_image(splash, boot_bg_color, false);
 #endif
 		}
 
@@ -3123,9 +3123,22 @@ bool Main::start() {
 		}
 	}
 
-	OS::get_singleton()->set_main_loop(main_loop);
-
 	SceneTree *sml = Object::cast_to<SceneTree>(main_loop);
+	if (sml) {
+		Window* window = memnew(Window);
+		window->set_name("root");
+		window->set_title(GLOBAL_GET("application/config/name"));
+		sml->init_with_root(window);
+	}
+
+	OS::get_singleton()->set_main_loop(main_loop);
+	if (sml) {
+		Window* root_window = Object::cast_to<Window>(sml->get_root());
+		if (root_window) {
+			window_id = root_window->get_window_id();
+		}
+	}
+
 	if (sml) {
 #ifdef DEBUG_ENABLED
 		if (debug_collisions) {
@@ -3523,6 +3536,7 @@ uint32_t Main::frame = 0;
 bool Main::force_redraw_requested = false;
 int Main::iterating = 0;
 bool Main::agile_input_event_flushing = false;
+DisplayServer::WindowID Main::window_id = DisplayServer::INVALID_WINDOW_ID;
 
 bool Main::is_iterating() {
 	return iterating > 0;

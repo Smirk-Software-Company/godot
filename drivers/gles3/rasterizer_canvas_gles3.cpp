@@ -1764,6 +1764,9 @@ void RasterizerCanvasGLES3::_update_shadow_atlas() {
 	GLES3::Config *config = GLES3::Config::get_singleton();
 
 	if (state.shadow_fb == 0) {
+		GLint fbo_id;
+		glGetIntegerv(GL_FRAMEBUFFER_BINDING, &fbo_id);
+
 		glActiveTexture(GL_TEXTURE0);
 
 		glGenFramebuffers(1, &state.shadow_fb);
@@ -1801,7 +1804,7 @@ void RasterizerCanvasGLES3::_update_shadow_atlas() {
 			WARN_PRINT("Could not create CanvasItem shadow atlas, status: " + GLES3::TextureStorage::get_singleton()->get_framebuffer_error(status));
 		}
 		GLES3::Utilities::get_singleton()->texture_allocated_data(state.shadow_texture, state.shadow_texture_size * data.max_lights_per_render * 2 * 4, "2D shadow atlas texture");
-		glBindFramebuffer(GL_FRAMEBUFFER, GLES3::TextureStorage::system_fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo_id);
 	}
 }
 

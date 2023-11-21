@@ -36,7 +36,11 @@ if env["dbus"]:
     if env["use_sowrap"]:
         common_linuxbsd.append("dbus-so_wrap.c")
 
-prog = env.add_program("#bin/godot", ["godot_linuxbsd.cpp"] + common_linuxbsd)
+if env["shared_library"]:
+    env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
+    shared_library = env.add_shared_library("#bin/godot", ["godot_runtime_api_linuxbsd.cpp"] + common_linuxbsd)
+else:
+    prog = env.add_program("#bin/godot", ["godot_linuxbsd.cpp"] + common_linuxbsd)
 
-if env["debug_symbols"] and env["separate_debug_symbols"]:
-    env.AddPostAction(prog, run_in_subprocess(platform_linuxbsd_builders.make_debug_linuxbsd))
+    if env["debug_symbols"] and env["separate_debug_symbols"]:
+        env.AddPostAction(prog, run_in_subprocess(platform_linuxbsd_builders.make_debug_linuxbsd))

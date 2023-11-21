@@ -877,6 +877,10 @@ Ref<ArrayMesh> SceneTree::get_debug_contact_mesh() {
 	return debug_contact_mesh;
 }
 
+void SceneTree::set_pause_effects_physics(bool p_pause_physics) {
+	pause_effects_physics = p_pause_physics;
+}
+
 void SceneTree::set_pause(bool p_enabled) {
 	ERR_FAIL_COND_MSG(!Thread::is_main_thread(), "Pause can only be set from the main thread.");
 
@@ -884,8 +888,10 @@ void SceneTree::set_pause(bool p_enabled) {
 		return;
 	}
 	paused = p_enabled;
-	PhysicsServer3D::get_singleton()->set_active(!p_enabled);
-	PhysicsServer2D::get_singleton()->set_active(!p_enabled);
+	if (pause_effects_physics) {
+		PhysicsServer3D::get_singleton()->set_active(!p_enabled);
+		PhysicsServer2D::get_singleton()->set_active(!p_enabled);
+	}
 	if (get_root()) {
 		get_root()->_propagate_pause_notification(p_enabled);
 	}
@@ -1581,7 +1587,8 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_edited_scene_root", "scene"), &SceneTree::set_edited_scene_root);
 	ClassDB::bind_method(D_METHOD("get_edited_scene_root"), &SceneTree::get_edited_scene_root);
 
-	ClassDB::bind_method(D_METHOD("set_pause", "enable"), &SceneTree::set_pause);
+	ClassDB::bind_method(D_METHOD("set_pause_effects_physics", "pause_physics"), &SceneTree::set_pause_effects_physics);
+	ClassDB::bind_method(D_METHOD("set_pause", "enable"), &SceneTree::set_pause, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("is_paused"), &SceneTree::is_paused);
 
 	ClassDB::bind_method(D_METHOD("create_timer", "time_sec", "process_always", "process_in_physics", "ignore_time_scale"), &SceneTree::create_timer, DEFVAL(true), DEFVAL(false), DEFVAL(false));
@@ -1631,6 +1638,13 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_multiplayer", "for_path"), &SceneTree::get_multiplayer, DEFVAL(NodePath()));
 	ClassDB::bind_method(D_METHOD("set_multiplayer_poll_enabled", "enabled"), &SceneTree::set_multiplayer_poll_enabled);
 	ClassDB::bind_method(D_METHOD("is_multiplayer_poll_enabled"), &SceneTree::is_multiplayer_poll_enabled);
+
+	ClassDB::bind_method(D_METHOD("init_with_root", "window"), &SceneTree::init_with_root);
+
+	ClassDB::bind_method(D_METHOD("process", "time"), &SceneTree::process);
+	ClassDB::bind_method(D_METHOD("physics_process", "time"), &SceneTree::physics_process);
+	ClassDB::bind_method(D_METHOD("initialize"), &SceneTree::initialize);
+	ClassDB::bind_method(D_METHOD("finalize"), &SceneTree::finalize);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_accept_quit"), "set_auto_accept_quit", "is_auto_accept_quit");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "quit_on_go_back"), "set_quit_on_go_back", "is_quit_on_go_back");
@@ -1710,28 +1724,10 @@ void SceneTree::set_disable_node_threading(bool p_disable) {
 	node_threading_disabled = p_disable;
 }
 
-SceneTree::SceneTree() {
-	if (singleton == nullptr) {
-		singleton = this;
-	}
-	debug_collisions_color = GLOBAL_DEF("debug/shapes/collision/shape_color", Color(0.0, 0.6, 0.7, 0.42));
-	debug_collision_contact_color = GLOBAL_DEF("debug/shapes/collision/contact_color", Color(1.0, 0.2, 0.1, 0.8));
-	debug_paths_color = GLOBAL_DEF("debug/shapes/paths/geometry_color", Color(0.1, 1.0, 0.7, 0.4));
-	debug_paths_width = GLOBAL_DEF("debug/shapes/paths/geometry_width", 2.0);
-	collision_debug_contacts = GLOBAL_DEF(PropertyInfo(Variant::INT, "debug/shapes/collision/max_contacts_displayed", PROPERTY_HINT_RANGE, "0,20000,1"), 10000);
-
-	GLOBAL_DEF("debug/shapes/collision/draw_2d_outlines", true);
-
-	process_group_call_queue_allocator = memnew(CallQueue::Allocator(64));
-	Math::randomize();
-
-	// Create with mainloop.
-
-	root = memnew(Window);
+void SceneTree::init_with_root(Window* p_window) {
+	root = p_window;
 	root->set_min_size(Size2i(64, 64)); // Define a very small minimum window size to prevent bugs such as GH-37242.
 	root->set_process_mode(Node::PROCESS_MODE_PAUSABLE);
-	root->set_name("root");
-	root->set_title(GLOBAL_GET("application/config/name"));
 
 	if (Engine::get_singleton()->is_editor_hint()) {
 		root->set_wrap_controls(true);
@@ -1865,6 +1861,22 @@ SceneTree::SceneTree() {
 #endif
 
 	process_groups.push_back(&default_process_group);
+}
+
+SceneTree::SceneTree() {
+	if (singleton == nullptr) {
+		singleton = this;
+	}
+	debug_collisions_color = GLOBAL_DEF("debug/shapes/collision/shape_color", Color(0.0, 0.6, 0.7, 0.42));
+	debug_collision_contact_color = GLOBAL_DEF("debug/shapes/collision/contact_color", Color(1.0, 0.2, 0.1, 0.8));
+	debug_paths_color = GLOBAL_DEF("debug/shapes/paths/geometry_color", Color(0.1, 1.0, 0.7, 0.4));
+	debug_paths_width = GLOBAL_DEF("debug/shapes/paths/geometry_width", 2.0);
+	collision_debug_contacts = GLOBAL_DEF(PropertyInfo(Variant::INT, "debug/shapes/collision/max_contacts_displayed", PROPERTY_HINT_RANGE, "0,20000,1"), 10000);
+
+	GLOBAL_DEF("debug/shapes/collision/draw_2d_outlines", true);
+
+	process_group_call_queue_allocator = memnew(CallQueue::Allocator(64));
+	Math::randomize();
 }
 
 SceneTree::~SceneTree() {

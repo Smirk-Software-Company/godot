@@ -34,6 +34,8 @@
 #include "core/input/input.h"
 #include "servers/display_server.h"
 
+#import "display_layer.h"
+
 #if defined(VULKAN_ENABLED)
 #import "vulkan_context_ios.h"
 
@@ -64,22 +66,30 @@ class DisplayServerIOS : public DisplayServer {
 	RenderingDeviceVulkan *rendering_device_vulkan = nullptr;
 #endif
 
-	id tts = nullptr;
-
+	// Disabled for embedding
+	// id tts = nullptr;
+	DisplayServer::VSyncMode vsync_mode;
 	DisplayServer::ScreenOrientation screen_orientation;
 
 	ObjectID window_attached_instance_id;
 
-	Callable window_event_callback;
-	Callable window_resize_callback;
-	Callable input_event_callback;
+	HashMap<WindowID, Callable> input_event_callbacks;
+	HashMap<WindowID, Callable> window_event_callbacks;
+	HashMap<WindowID, Callable> window_resize_callbacks;
+
+	NSMutableDictionary<NSNumber*, CALayer<DisplayLayer>*> *layers;
+
 	Callable input_text_callback;
 
 	int virtual_keyboard_height = 0;
+	HashSet<DisplayServer::WindowID> active_keyboards;
+
+	WindowID window_id_counter = 0;
+	HashSet<DisplayServer::WindowID> window_ids;
 
 	void perform_event(const Ref<InputEvent> &p_event);
 
-	DisplayServerIOS(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
+	DisplayServerIOS(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	~DisplayServerIOS();
 
 public:
@@ -88,12 +98,21 @@ public:
 	static DisplayServerIOS *get_singleton();
 
 	static void register_ios_driver();
-	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
+	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	static Vector<String> get_rendering_drivers_func();
+
+	CALayer<DisplayLayer> *create_rendering_layer(const String &p_rendering_driver, void* p_native_handle, bool initCommon = false);
 
 	// MARK: - Events
 
 	virtual void process_events() override;
+
+	virtual WindowID wrap_external_window(void* p_native_handle) override;
+	virtual void release_external_window(WindowID p_id) override;
+	virtual void start_render_external_window(WindowID p_id) override;
+	virtual void stop_render_external_window(WindowID p_id) override;
+	virtual void resize_external_window(Vector2 p_view_size, WindowID p_id) override;
+	virtual int get_screen_native_id(WindowID p_id) override;
 
 	virtual void window_set_rect_changed_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual void window_set_window_event_callback(const Callable &p_callable, WindowID p_window = MAIN_WINDOW_ID) override;
@@ -104,21 +123,22 @@ public:
 	static void _dispatch_input_events(const Ref<InputEvent> &p_event);
 	void send_input_event(const Ref<InputEvent> &p_event) const;
 	void send_input_text(const String &p_text) const;
-	void send_window_event(DisplayServer::WindowEvent p_event) const;
-	void _window_callback(const Callable &p_callable, const Variant &p_arg) const;
+	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const override;
+	void _window_callback(const Callable &p_callable, const Variant &p_arg, bool p_deferred = false) const;
 
 	// MARK: - Input
 
 	// MARK: Touches and Apple Pencil
 
-	void touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click);
-	void touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt);
-	void touches_canceled(int p_idx);
+	virtual void touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window) override;
+	virtual void touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window) override;
+	virtual void touches_canceled(int p_idx, DisplayServer::WindowID p_window) override;
 
 	// MARK: Keyboard
 
-	void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, NSInteger p_modifier, bool p_pressed);
-	bool is_keyboard_active() const;
+	virtual void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window) override;
+
+	virtual bool is_keyboard_active(DisplayServer::WindowID p_window = MAIN_WINDOW_ID) const override;
 
 	// MARK: Motion
 
@@ -212,8 +232,8 @@ public:
 
 	virtual bool is_touchscreen_available() const override;
 
-	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) override;
-	virtual void virtual_keyboard_hide() override;
+	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual void virtual_keyboard_hide(WindowID p_window = MAIN_WINDOW_ID) override;
 
 	void virtual_keyboard_set_height(int height);
 	virtual int virtual_keyboard_get_height() const override;

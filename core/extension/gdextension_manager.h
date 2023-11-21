@@ -42,6 +42,8 @@ class GDExtensionManager : public Object {
 
 	static void _bind_methods();
 
+	static HashMap<String, GDExtensionInitializationFunction> direct_extensions_registry;	// used before the singleton is created
+
 	static GDExtensionManager *singleton;
 
 public:
@@ -63,6 +65,8 @@ private:
 
 public:
 	LoadStatus load_extension(const String &p_path);
+	LoadStatus load_direct_extension(const String &p_library_name, GDExtensionInitializationFunction p_init_function);
+	static LoadStatus register_direct_extension(const String &p_library_name, GDExtensionInitializationFunction p_init_function);
 	LoadStatus reload_extension(const String &p_path);
 	LoadStatus unload_extension(const String &p_path);
 	bool is_extension_loaded(const String &p_path) const;

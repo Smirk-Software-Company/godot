@@ -444,6 +444,30 @@ DisplayServer::WindowID DisplayServer::create_sub_window(WindowMode p_mode, VSyn
 	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "Sub-windows not supported by this display server.");
 }
 
+DisplayServer::WindowID DisplayServer::wrap_external_window(void* p_native_handle) {
+	ERR_FAIL_V_MSG(INVALID_WINDOW_ID, "External windows not supported by this display server.");
+}
+
+void DisplayServer::release_external_window(DisplayServer::WindowID p_id) {
+	ERR_FAIL_MSG("External windows not supported by this display server.");
+}
+
+void DisplayServer::start_render_external_window(DisplayServer::WindowID p_id) {
+	ERR_FAIL_MSG("External windows not supported by this display server.");
+}
+
+void DisplayServer::stop_render_external_window(DisplayServer::WindowID p_id) {
+	ERR_FAIL_MSG("External windows not supported by this display server.");
+}
+
+void DisplayServer::resize_external_window(Vector2 p_view_size, WindowID p_id) {
+	ERR_FAIL_MSG("External windows not supported by this display server.");
+}
+
+int DisplayServer::get_screen_native_id(WindowID p_id) {
+	return 0;
+}
+
 void DisplayServer::show_window(WindowID p_id) {
 	ERR_FAIL_MSG("Sub-windows not supported by this display server.");
 }
@@ -480,12 +504,17 @@ String DisplayServer::ime_get_text() const {
 	ERR_FAIL_V_MSG(String(), "IME or NOTIFICATION_WM_IME_UPDATEnot supported by this display server.");
 }
 
-void DisplayServer::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) {
+void DisplayServer::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, DisplayServer::WindowID p_window) {
 	WARN_PRINT("Virtual keyboard not supported by this display server.");
 }
 
-void DisplayServer::virtual_keyboard_hide() {
+void DisplayServer::virtual_keyboard_hide(DisplayServer::WindowID p_window) {
 	WARN_PRINT("Virtual keyboard not supported by this display server.");
+}
+
+bool DisplayServer::is_keyboard_active(DisplayServer::WindowID p_window) const {
+	WARN_PRINT("Virtual keyboard not supported by this display server.");
+	return false;
 }
 
 // returns height of the currently shown keyboard (0 if keyboard is hidden)
@@ -576,6 +605,27 @@ void DisplayServer::set_native_icon(const String &p_filename) {
 void DisplayServer::set_icon(const Ref<Image> &p_icon) {
 	WARN_PRINT("Icon not supported by this display server.");
 }
+
+void DisplayServer::touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Touch press not supported by this display server.");
+}
+
+void DisplayServer::touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Touch drag not supported by this display server.");
+}
+
+void DisplayServer::touches_canceled(int p_idx, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Touch cancel not supported by this display server.");
+}
+
+void DisplayServer::key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window) {
+	WARN_PRINT("Key press not supported by this display server.");
+}
+
+void DisplayServer::send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred) const {
+	WARN_PRINT("Send window event not supported by this display server.");
+}
+
 
 int64_t DisplayServer::window_get_native_handle(HandleType p_handle_type, WindowID p_window) const {
 	WARN_PRINT("Native handle not supported by this display server.");
@@ -776,8 +826,9 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("ime_get_selection"), &DisplayServer::ime_get_selection);
 	ClassDB::bind_method(D_METHOD("ime_get_text"), &DisplayServer::ime_get_text);
 
-	ClassDB::bind_method(D_METHOD("virtual_keyboard_show", "existing_text", "position", "type", "max_length", "cursor_start", "cursor_end"), &DisplayServer::virtual_keyboard_show, DEFVAL(Rect2()), DEFVAL(KEYBOARD_TYPE_DEFAULT), DEFVAL(-1), DEFVAL(-1), DEFVAL(-1));
-	ClassDB::bind_method(D_METHOD("virtual_keyboard_hide"), &DisplayServer::virtual_keyboard_hide);
+	ClassDB::bind_method(D_METHOD("virtual_keyboard_show", "existing_text", "position", "type", "max_length", "cursor_start", "cursor_end", "window_id"), &DisplayServer::virtual_keyboard_show, DEFVAL(Rect2()), DEFVAL(KEYBOARD_TYPE_DEFAULT), DEFVAL(-1), DEFVAL(-1), DEFVAL(-1), DEFVAL(MAIN_WINDOW_ID));
+	ClassDB::bind_method(D_METHOD("virtual_keyboard_hide", "window_id"), &DisplayServer::virtual_keyboard_hide, DEFVAL(MAIN_WINDOW_ID));
+	ClassDB::bind_method(D_METHOD("is_keyboard_active", "window_id"), &DisplayServer::is_keyboard_active, DEFVAL(MAIN_WINDOW_ID));
 
 	ClassDB::bind_method(D_METHOD("virtual_keyboard_get_height"), &DisplayServer::virtual_keyboard_get_height);
 
@@ -812,6 +863,15 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("tablet_get_driver_name", "idx"), &DisplayServer::tablet_get_driver_name);
 	ClassDB::bind_method(D_METHOD("tablet_get_current_driver"), &DisplayServer::tablet_get_current_driver);
 	ClassDB::bind_method(D_METHOD("tablet_set_current_driver", "name"), &DisplayServer::tablet_set_current_driver);
+
+	ClassDB::bind_method(D_METHOD("touch_press", "idx", "x", "y", "pressed", "double_click", "window"), &DisplayServer::touch_press);
+	ClassDB::bind_method(D_METHOD("touch_drag", "idx", "prev_x", "prev_y", "x", "y", "pressure", "tilt", "window"), &DisplayServer::touch_drag);
+	ClassDB::bind_method(D_METHOD("touches_canceled", "idx", "window"), &DisplayServer::touches_canceled);
+	ClassDB::bind_method(D_METHOD("key", "key", "char", "unshifted", "physical", "modifiers", "pressed", "window"), &DisplayServer::key);
+
+	ClassDB::bind_method(D_METHOD("send_window_event", "event", "window", "deferred"), &DisplayServer::send_window_event);
+
+	ClassDB::bind_method(D_METHOD("resize_external_window", "view_size", "id"), &DisplayServer::resize_external_window);
 
 	BIND_ENUM_CONSTANT(FEATURE_GLOBAL_MENU);
 	BIND_ENUM_CONSTANT(FEATURE_SUBWINDOWS);
@@ -956,9 +1016,9 @@ Vector<String> DisplayServer::get_create_function_rendering_drivers(int p_index)
 	return server_create_functions[p_index].get_rendering_drivers_function();
 }
 
-DisplayServer *DisplayServer::create(int p_index, const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
+DisplayServer *DisplayServer::create(int p_index, const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle) {
 	ERR_FAIL_INDEX_V(p_index, server_create_count, nullptr);
-	return server_create_functions[p_index].create_function(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error);
+	return server_create_functions[p_index].create_function(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error, native_main_window_handle);
 }
 
 void DisplayServer::_input_set_mouse_mode(Input::MouseMode p_mode) {

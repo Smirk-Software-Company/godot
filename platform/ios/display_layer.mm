@@ -40,13 +40,15 @@
 
 #import <AudioToolbox/AudioServices.h>
 #import <GameController/GameController.h>
-#import <OpenGLES/EAGL.h>
-#import <OpenGLES/ES1/gl.h>
-#import <OpenGLES/ES1/glext.h>
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 
+static EAGLContext *context = nullptr;
+
 @implementation GodotMetalLayer
+
++ (void)initializeCommon {
+}
 
 - (void)initializeDisplayLayer {
 #if defined(TARGET_OS_SIMULATOR) && TARGET_OS_SIMULATOR
@@ -56,6 +58,9 @@
 		NSLog(@"iOS Simulator prior to iOS 13 does not support Metal rendering.");
 	}
 #endif
+}
+
++ (void)deinitializeCommon {
 }
 
 - (void)layoutDisplayLayer {
@@ -74,9 +79,35 @@
 	GLint backingWidth;
 	GLint backingHeight;
 
-	EAGLContext *context;
 	GLuint viewRenderbuffer, viewFramebuffer;
 	GLuint depthRenderbuffer;
+}
+
++ (void)initializeCommon {
+	// Create GL ES 3 context
+	if (OS::get_singleton()->get_current_rendering_method() == "gl_compatibility") {
+		context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
+		NSLog(@"Setting up an OpenGL ES 3.0 context.");
+		if (!context) {
+			NSLog(@"Failed to create OpenGL ES 3.0 context!");
+			return;
+		}
+	}
+
+	if (![EAGLContext setCurrentContext:context]) {
+		NSLog(@"Failed to set EAGLContext!");
+		return;
+	}
+}
+
++ (void)deinitializeCommon {
+	if ([EAGLContext currentContext] == context) {
+		[EAGLContext setCurrentContext:nil];
+	}
+
+	if (context) {
+		context = nil;
+	}
 }
 
 - (void)initializeDisplayLayer {
@@ -88,16 +119,6 @@
 			kEAGLColorFormatRGBA8,
 			kEAGLDrawablePropertyColorFormat,
 			nil];
-
-	// Create GL ES 3 context
-	if (GLOBAL_GET("rendering/renderer/rendering_method") == "gl_compatibility") {
-		context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES3];
-		NSLog(@"Setting up an OpenGL ES 3.0 context.");
-		if (!context) {
-			NSLog(@"Failed to create OpenGL ES 3.0 context!");
-			return;
-		}
-	}
 
 	if (![EAGLContext setCurrentContext:context]) {
 		NSLog(@"Failed to set EAGLContext!");
@@ -112,7 +133,10 @@
 - (void)layoutDisplayLayer {
 	[EAGLContext setCurrentContext:context];
 	[self destroyFramebuffer];
-	[self createFramebuffer];
+	if (![self createFramebuffer]) {
+		NSLog(@"Failed to create frame buffer!");
+		return;
+	}
 }
 
 - (void)startRenderDisplayLayer {
@@ -134,13 +158,7 @@
 }
 
 - (void)dealloc {
-	if ([EAGLContext currentContext] == context) {
-		[EAGLContext setCurrentContext:nil];
-	}
-
-	if (context) {
-		context = nil;
-	}
+	[self destroyFramebuffer];
 }
 
 - (BOOL)createFramebuffer {
@@ -168,15 +186,11 @@
 		return NO;
 	}
 
-	GLES3::TextureStorage::system_fbo = viewFramebuffer;
-
 	return YES;
 }
 
 // Clean up any buffers we have allocated.
 - (void)destroyFramebuffer {
-	GLES3::TextureStorage::system_fbo = 0;
-
 	glDeleteFramebuffersOES(1, &viewFramebuffer);
 	viewFramebuffer = 0;
 	glDeleteRenderbuffersOES(1, &viewRenderbuffer);
@@ -186,6 +200,10 @@
 		glDeleteRenderbuffersOES(1, &depthRenderbuffer);
 		depthRenderbuffer = 0;
 	}
+}
+
+- (GLuint)fbo {
+	return viewFramebuffer;
 }
 
 @end

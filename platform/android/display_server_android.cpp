@@ -258,7 +258,7 @@ bool DisplayServerAndroid::is_touchscreen_available() const {
 	return true;
 }
 
-void DisplayServerAndroid::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end) {
+void DisplayServerAndroid::virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect, VirtualKeyboardType p_type, int p_max_length, int p_cursor_start, int p_cursor_end, DisplayServer::WindowID p_window) {
 	GodotIOJavaWrapper *godot_io_java = OS_Android::get_singleton()->get_godot_io_java();
 	ERR_FAIL_NULL(godot_io_java);
 
@@ -269,7 +269,7 @@ void DisplayServerAndroid::virtual_keyboard_show(const String &p_existing_text, 
 	}
 }
 
-void DisplayServerAndroid::virtual_keyboard_hide() {
+void DisplayServerAndroid::virtual_keyboard_hide(DisplayServer::WindowID p_window) {
 	GodotIOJavaWrapper *godot_io_java = OS_Android::get_singleton()->get_godot_io_java();
 	ERR_FAIL_NULL(godot_io_java);
 
@@ -317,7 +317,7 @@ void DisplayServerAndroid::_window_callback(const Callable &p_callable, const Va
 	}
 }
 
-void DisplayServerAndroid::send_window_event(DisplayServer::WindowEvent p_event, bool p_deferred) const {
+void DisplayServerAndroid::send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred) const {
 	_window_callback(window_event_callback, int(p_event), p_deferred);
 }
 
@@ -493,7 +493,7 @@ Vector<String> DisplayServerAndroid::get_rendering_drivers_func() {
 	return drivers;
 }
 
-DisplayServer *DisplayServerAndroid::create_func(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
+DisplayServer *DisplayServerAndroid::create_func(const String &p_rendering_driver, DisplayServer::WindowMode p_mode, DisplayServer::VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t /* native_main_window_handle */) {
 	DisplayServer *ds = memnew(DisplayServerAndroid(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error));
 	if (r_error != OK) {
 		if (p_rendering_driver == "vulkan") {

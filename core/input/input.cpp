@@ -551,6 +551,7 @@ void Input::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool p_is_em
 		if (event_dispatch_function && emulate_touch_from_mouse && !p_is_emulated && mb->get_button_index() == MouseButton::LEFT) {
 			Ref<InputEventScreenTouch> touch_event;
 			touch_event.instantiate();
+			touch_event->set_window_id(mb->get_window_id());
 			touch_event->set_pressed(mb->is_pressed());
 			touch_event->set_canceled(mb->is_canceled());
 			touch_event->set_position(mb->get_position());
@@ -576,6 +577,7 @@ void Input::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool p_is_em
 			Ref<InputEventScreenDrag> drag_event;
 			drag_event.instantiate();
 
+			drag_event->set_window_id(mm->get_window_id());
 			drag_event->set_position(position);
 			drag_event->set_relative(relative);
 			drag_event->set_tilt(mm->get_tilt());
@@ -620,6 +622,7 @@ void Input::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool p_is_em
 				Ref<InputEventMouseButton> button_event;
 				button_event.instantiate();
 
+				button_event->set_window_id(st->get_window_id());
 				button_event->set_device(InputEvent::DEVICE_ID_EMULATION);
 				button_event->set_position(st->get_position());
 				button_event->set_global_position(st->get_position());
@@ -652,6 +655,7 @@ void Input::_parse_input_event_impl(const Ref<InputEvent> &p_event, bool p_is_em
 			Ref<InputEventMouseMotion> motion_event;
 			motion_event.instantiate();
 
+			motion_event->set_window_id(sd->get_window_id());
 			motion_event->set_device(InputEvent::DEVICE_ID_EMULATION);
 			motion_event->set_tilt(sd->get_tilt());
 			motion_event->set_pen_inverted(sd->get_pen_inverted());

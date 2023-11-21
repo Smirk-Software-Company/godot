@@ -46,7 +46,7 @@
 		return YES;
 	}
 
-	ds->send_window_event(ds->get_window(window_id), DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST, window_id);
 	return NO;
 }
 
@@ -118,7 +118,7 @@
 		ds->window_set_custom_window_buttons(wd, false);
 	}
 
-	ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE, window_id);
 
 	// Force window resize event and redraw.
 	[self windowDidResize:notification];
@@ -138,7 +138,7 @@
 		ds->window_set_custom_window_buttons(wd, true);
 	}
 
-	ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE, window_id);
 }
 
 - (void)windowDidFailToExitFullScreen:(NSWindow *)window {
@@ -154,7 +154,7 @@
 		ds->window_set_custom_window_buttons(wd, false);
 	}
 
-	ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE, window_id);
 }
 
 - (void)windowDidExitFullScreen:(NSNotification *)notification {
@@ -221,7 +221,7 @@
 		wd.size.width = content_rect.size.width * scale;
 		wd.size.height = content_rect.size.height * scale;
 
-		ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_DPI_CHANGE);
+		ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_DPI_CHANGE, window_id);
 
 		CALayer *layer = [wd.window_view layer];
 		if (layer) {
@@ -322,7 +322,7 @@
 
 	wd.focused = true;
 	ds->set_last_focused_window(window_id);
-	ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_FOCUS_IN);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_FOCUS_IN, window_id);
 }
 
 - (void)windowDidResignKey:(NSNotification *)notification {
@@ -339,7 +339,7 @@
 
 	wd.focused = false;
 	ds->release_pressed_events();
-	ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_FOCUS_OUT);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_FOCUS_OUT, window_id);
 }
 
 - (void)windowDidMiniaturize:(NSNotification *)notification {
@@ -352,7 +352,7 @@
 
 	wd.focused = false;
 	ds->release_pressed_events();
-	ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_FOCUS_OUT);
+	ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_FOCUS_OUT, window_id);
 }
 
 - (void)windowDidDeminiaturize:(NSNotification *)notification {
@@ -365,7 +365,7 @@
 	if ([wd.window_object isKeyWindow]) {
 		wd.focused = true;
 		ds->set_last_focused_window(window_id);
-		ds->send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_FOCUS_IN);
+		ds->send_window_event(DisplayServerMacOS::WINDOW_EVENT_FOCUS_IN, window_id);
 	}
 }
 

@@ -603,6 +603,7 @@ public:
 	FUNC2(viewport_set_use_xr, RID, bool)
 	FUNC3(viewport_set_size, RID, int, int)
 
+	FUNC1RC(bool, viewport_is_active, RID)
 	FUNC2(viewport_set_active, RID, bool)
 	FUNC2(viewport_set_parent_viewport, RID, RID)
 
@@ -610,6 +611,7 @@ public:
 
 	FUNC3(viewport_attach_to_screen, RID, const Rect2 &, int)
 	FUNC2(viewport_set_render_direct_to_screen, RID, bool)
+	FUNC2(viewport_set_screen_native_id, RID, int)
 
 	FUNC2(viewport_set_scaling_3d_mode, RID, ViewportScaling3DMode)
 	FUNC2(viewport_set_scaling_3d_scale, RID, float)

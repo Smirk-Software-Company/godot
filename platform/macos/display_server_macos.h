@@ -239,7 +239,7 @@ public:
 	WindowData &get_window(WindowID p_window);
 
 	void send_event(NSEvent *p_event);
-	void send_window_event(const WindowData &p_wd, WindowEvent p_event);
+	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const override;
 	void release_pressed_events();
 	void get_key_modifier_state(unsigned int p_macos_state, Ref<InputEventWithModifiers> r_state) const;
 	void update_mouse_pos(WindowData &p_wd, NSPoint p_location_in_window);
@@ -473,7 +473,7 @@ public:
 	virtual void set_native_icon(const String &p_filename) override;
 	virtual void set_icon(const Ref<Image> &p_icon) override;
 
-	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
+	static DisplayServer *create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	static Vector<String> get_rendering_drivers_func();
 
 	static void register_macos_driver();

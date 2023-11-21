@@ -557,6 +557,10 @@ String OS::get_unique_id() const {
 	return ::OS::get_singleton()->get_unique_id();
 }
 
+void OS::set_pause(bool pause) {
+	::OS::get_singleton()->set_pause(pause);
+}
+
 OS *OS::singleton = nullptr;
 
 void OS::_bind_methods() {
@@ -632,6 +636,8 @@ void OS::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_data_dir"), &OS::get_data_dir);
 	ClassDB::bind_method(D_METHOD("get_cache_dir"), &OS::get_cache_dir);
 	ClassDB::bind_method(D_METHOD("get_unique_id"), &OS::get_unique_id);
+
+	ClassDB::bind_method(D_METHOD("set_pause", "pause"), &OS::set_pause);
 
 	ClassDB::bind_method(D_METHOD("get_keycode_string", "code"), &OS::get_keycode_string);
 	ClassDB::bind_method(D_METHOD("is_keycode_unicode", "code"), &OS::is_keycode_unicode);

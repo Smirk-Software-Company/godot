@@ -774,6 +774,10 @@ void Window::set_visible(bool p_visible) {
 		return;
 	}
 
+	if (native_window_handle) {
+		return;
+	}
+
 	if (!is_inside_tree()) {
 		visible = p_visible;
 		return;
@@ -1009,6 +1013,8 @@ void Window::_update_viewport_size() {
 	float font_oversampling = 1.0;
 	window_transform = Transform2D();
 
+	RS::get_singleton()->viewport_set_screen_native_id(get_viewport_rid(), DisplayServer::get_singleton()->get_screen_native_id(window_id));
+
 	if (content_scale_stretch == Window::CONTENT_SCALE_STRETCH_INTEGER) {
 		// We always want to make sure that the content scale factor is a whole
 		// number, else there will be pixel wobble no matter what.
@@ -1159,6 +1165,11 @@ void Window::_update_window_callbacks() {
 
 Viewport *Window::get_embedder() const {
 	ERR_READ_THREAD_GUARD_V(nullptr);
+
+	if (native_window_handle) {
+		return nullptr;
+	}
+
 	Viewport *vp = get_parent_viewport();
 
 	while (vp) {
@@ -1217,10 +1228,14 @@ void Window::_notification(int p_what) {
 				}
 
 			} else {
-				if (!get_parent()) {
+				if (!get_parent() || native_window_handle) {
 					// It's the root window!
 					visible = true; // Always visible.
-					window_id = DisplayServer::MAIN_WINDOW_ID;
+					if (native_window_handle) {
+						window_id = DisplayServer::get_singleton()->wrap_external_window(native_window_handle);
+					} else {
+						window_id = DisplayServer::MAIN_WINDOW_ID;
+					}
 					DisplayServer::get_singleton()->window_attach_instance_id(get_instance_id(), window_id);
 					_update_from_window();
 					// Since this window already exists (created on start), we must update pos and size from it.
@@ -1312,7 +1327,10 @@ void Window::_notification(int p_what) {
 			}
 
 			if (!is_embedded() && window_id != DisplayServer::INVALID_WINDOW_ID) {
-				if (window_id == DisplayServer::MAIN_WINDOW_ID) {
+				if (window_id == DisplayServer::MAIN_WINDOW_ID || native_window_handle) {
+					if (native_window_handle) {
+						DisplayServer::get_singleton()->release_external_window(window_id);
+					}
 					RS::get_singleton()->viewport_set_update_mode(get_viewport_rid(), RS::VIEWPORT_UPDATE_DISABLED);
 					_update_window_callbacks();
 				} else {
@@ -2649,6 +2667,16 @@ void Window::_mouse_leave_viewport() {
 	}
 }
 
+void Window::init_from_native(uint64_t p_native_window_handle) {
+	native_window_handle = reinterpret_cast<void*>(p_native_window_handle);
+}
+
+void Window::release_native() {
+	ERR_FAIL_COND(window_id == DisplayServer::INVALID_WINDOW_ID);
+	DisplayServer::get_singleton()->release_external_window(window_id);
+	window_id = DisplayServer::INVALID_WINDOW_ID;
+}
+
 void Window::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_title", "title"), &Window::set_title);
 	ClassDB::bind_method(D_METHOD("get_title"), &Window::get_title);
@@ -2812,6 +2840,9 @@ void Window::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("popup_exclusive_centered", "from_node", "minsize"), &Window::popup_exclusive_centered, DEFVAL(Size2i()));
 	ClassDB::bind_method(D_METHOD("popup_exclusive_centered_ratio", "from_node", "ratio"), &Window::popup_exclusive_centered_ratio, DEFVAL(0.8));
 	ClassDB::bind_method(D_METHOD("popup_exclusive_centered_clamped", "from_node", "minsize", "fallback_ratio"), &Window::popup_exclusive_centered_clamped, DEFVAL(Size2i()), DEFVAL(0.75));
+
+	ClassDB::bind_method(D_METHOD("init_from_native", "native_window_handle"), &Window::init_from_native);
+	ClassDB::bind_method(D_METHOD("release_native"), &Window::release_native);
 
 	// Keep the enum values in sync with the `Mode` enum.
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Windowed,Minimized,Maximized,Fullscreen,Exclusive Fullscreen"), "set_mode", "get_mode");

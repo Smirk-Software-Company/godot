@@ -475,7 +475,7 @@ bool WebXRInterfaceJS::pre_draw_viewport(RID p_render_target) {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rt->color, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, rt->depth, 0);
 		}
-		glBindFramebuffer(GL_FRAMEBUFFER, texture_storage->system_fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, rt->screen_fbo);
 	}
 
 	return true;

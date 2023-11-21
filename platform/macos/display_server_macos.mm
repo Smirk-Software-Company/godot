@@ -371,18 +371,18 @@ DisplayServer::WindowID DisplayServerMacOS::_get_focused_window_or_popup() const
 void DisplayServerMacOS::mouse_enter_window(WindowID p_window) {
 	if (window_mouseover_id != p_window) {
 		if (window_mouseover_id != INVALID_WINDOW_ID) {
-			send_window_event(windows[window_mouseover_id], WINDOW_EVENT_MOUSE_EXIT);
+			send_window_event(WINDOW_EVENT_MOUSE_EXIT, window_mouseover_id);
 		}
 		window_mouseover_id = p_window;
 		if (p_window != INVALID_WINDOW_ID) {
-			send_window_event(windows[p_window], WINDOW_EVENT_MOUSE_ENTER);
+			send_window_event(WINDOW_EVENT_MOUSE_ENTER, p_window);
 		}
 	}
 }
 
 void DisplayServerMacOS::mouse_exit_window(WindowID p_window) {
 	if (window_mouseover_id == p_window && p_window != INVALID_WINDOW_ID) {
-		send_window_event(windows[p_window], WINDOW_EVENT_MOUSE_EXIT);
+		send_window_event(WINDOW_EVENT_MOUSE_EXIT, p_window);
 	}
 	window_mouseover_id = INVALID_WINDOW_ID;
 }
@@ -693,12 +693,20 @@ void DisplayServerMacOS::send_event(NSEvent *p_event) {
 	}
 }
 
-void DisplayServerMacOS::send_window_event(const WindowData &wd, WindowEvent p_event) {
+void DisplayServerMacOS::send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred) const {
 	_THREAD_SAFE_METHOD_
 
+	if (!windows.has(p_window)) {
+		return;
+	}
+	const WindowData &wd = windows[p_window];
 	if (wd.event_callback.is_valid()) {
 		Variant event = int(p_event);
-		wd.event_callback.call(event);
+		if (p_deferred) {
+			wd.event_callback.call_deferred(event);
+		} else {
+			wd.event_callback.call(event);
+		}
 	}
 }
 
@@ -3497,7 +3505,7 @@ void DisplayServerMacOS::window_set_flag(WindowFlags p_flag, bool p_enabled, Win
 				}
 			}
 			[wd.window_object setFrame:rect display:YES];
-			send_window_event(wd, DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE);
+			send_window_event(DisplayServerMacOS::WINDOW_EVENT_TITLEBAR_CHANGE, p_window);
 		} break;
 		case WINDOW_FLAG_BORDERLESS: {
 			if (wd.fullscreen) {
@@ -4243,7 +4251,7 @@ void DisplayServerMacOS::set_icon(const Ref<Image> &p_icon) {
 	}
 }
 
-DisplayServer *DisplayServerMacOS::create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error) {
+DisplayServer *DisplayServerMacOS::create_func(const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t /* native_main_window_handle */) {
 	DisplayServer *ds = memnew(DisplayServerMacOS(p_rendering_driver, p_mode, p_vsync_mode, p_flags, p_position, p_resolution, p_screen, r_error));
 	if (r_error != OK) {
 		if (p_rendering_driver == "vulkan") {
@@ -4346,7 +4354,7 @@ void DisplayServerMacOS::popup_open(WindowID p_window) {
 			}
 		}
 		if (C) {
-			send_window_event(windows[C->get()], DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST);
+			send_window_event(DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST, C->get());
 		}
 
 		if (was_empty && popup_list.is_empty()) {
@@ -4368,7 +4376,7 @@ void DisplayServerMacOS::popup_close(WindowID p_window) {
 		WindowID win_id = E->get();
 		popup_list.erase(E);
 
-		send_window_event(windows[win_id], DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST);
+		send_window_event(DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST, win_id);
 		E = F;
 	}
 	if (!was_empty && popup_list.is_empty()) {
@@ -4386,7 +4394,7 @@ bool DisplayServerMacOS::mouse_process_popups(bool p_close) {
 		// Close all popups.
 		List<WindowID>::Element *E = popup_list.front();
 		if (E) {
-			send_window_event(windows[E->get()], DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST);
+			send_window_event(DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST, E->get());
 			closed = true;
 		}
 		if (!was_empty) {
@@ -4418,7 +4426,7 @@ bool DisplayServerMacOS::mouse_process_popups(bool p_close) {
 			}
 		}
 		if (C) {
-			send_window_event(windows[C->get()], DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST);
+			send_window_event(DisplayServerMacOS::WINDOW_EVENT_CLOSE_REQUEST, C->get());
 			closed = true;
 		}
 		if (!was_empty && popup_list.is_empty()) {

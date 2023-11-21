@@ -107,7 +107,6 @@ public:
 	};
 
 private:
-	DisplayServer::WindowID window_id = DisplayServer::INVALID_WINDOW_ID;
 	bool initialized = false;
 
 	String title;
@@ -137,6 +136,8 @@ private:
 	LayoutDirection layout_dir = LAYOUT_DIRECTION_INHERITED;
 
 	bool auto_translate = true;
+
+	void* native_window_handle = nullptr;
 
 	void _update_child_controls();
 	void _update_embedded_window();
@@ -235,6 +236,8 @@ private:
 	Ref<Shortcut> debugger_stop_shortcut;
 
 protected:
+	DisplayServer::WindowID window_id = DisplayServer::INVALID_WINDOW_ID;
+
 	virtual Rect2i _popup_adjust_rect() const { return Rect2i(); }
 	virtual void _post_popup() {}
 
@@ -268,6 +271,9 @@ public:
 
 	void set_current_screen(int p_screen);
 	int get_current_screen() const;
+
+	void init_from_native(uint64_t p_native_window_handle);
+	void release_native();
 
 	void set_position(const Point2i &p_position);
 	Point2i get_position() const;

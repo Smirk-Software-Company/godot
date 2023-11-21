@@ -73,7 +73,7 @@ public:
 		OPENGL_CONTEXT,
 	};
 
-	typedef DisplayServer *(*CreateFunction)(const String &, WindowMode, VSyncMode, uint32_t, const Point2i *, const Size2i &, int p_screen, Error &r_error);
+	typedef DisplayServer *(*CreateFunction)(const String &, WindowMode, VSyncMode, uint32_t, const Point2i *, const Size2i &, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 	typedef Vector<String> (*GetRenderingDriversFunction)();
 
 private:
@@ -362,6 +362,12 @@ public:
 	};
 
 	virtual WindowID create_sub_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
+	virtual WindowID wrap_external_window(void* p_native_handle);
+	virtual void release_external_window(WindowID p_id);
+	virtual void start_render_external_window(WindowID p_id);
+	virtual void stop_render_external_window(WindowID p_id);
+	virtual void resize_external_window(Vector2 p_view_size, WindowID p_id);
+	virtual int get_screen_native_id(WindowID p_id);
 	virtual void show_window(WindowID p_id);
 	virtual void delete_sub_window(WindowID p_id);
 
@@ -464,8 +470,8 @@ public:
 		KEYBOARD_TYPE_URL
 	};
 
-	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect = Rect2(), VirtualKeyboardType p_type = KEYBOARD_TYPE_DEFAULT, int p_max_length = -1, int p_cursor_start = -1, int p_cursor_end = -1);
-	virtual void virtual_keyboard_hide();
+	virtual void virtual_keyboard_show(const String &p_existing_text, const Rect2 &p_screen_rect = Rect2(), VirtualKeyboardType p_type = KEYBOARD_TYPE_DEFAULT, int p_max_length = -1, int p_cursor_start = -1, int p_cursor_end = -1, DisplayServer::WindowID p_window = MAIN_WINDOW_ID);
+	virtual void virtual_keyboard_hide(DisplayServer::WindowID p_window = MAIN_WINDOW_ID);
 
 	// returns height of the currently shown virtual keyboard (0 if keyboard is hidden)
 	virtual int virtual_keyboard_get_height() const;
@@ -535,6 +541,15 @@ public:
 	virtual void set_native_icon(const String &p_filename);
 	virtual void set_icon(const Ref<Image> &p_icon);
 
+	virtual void touch_press(int p_idx, int p_x, int p_y, bool p_pressed, bool p_double_click, DisplayServer::WindowID p_window);
+	virtual void touch_drag(int p_idx, int p_prev_x, int p_prev_y, int p_x, int p_y, float p_pressure, Vector2 p_tilt, DisplayServer::WindowID p_window);
+	virtual void touches_canceled(int p_idx, DisplayServer::WindowID p_window);
+	virtual void key(Key p_key, char32_t p_char, Key p_unshifted, Key p_physical, BitField<KeyModifierMask> p_modifiers, bool p_pressed, DisplayServer::WindowID p_window);
+
+	virtual void send_window_event(DisplayServer::WindowEvent p_event, DisplayServer::WindowID p_window, bool p_deferred = false) const;
+
+	virtual bool is_keyboard_active(DisplayServer::WindowID p_window = MAIN_WINDOW_ID) const;
+
 	enum Context {
 		CONTEXT_EDITOR,
 		CONTEXT_PROJECTMAN,
@@ -547,7 +562,7 @@ public:
 	static int get_create_function_count();
 	static const char *get_create_function_name(int p_index);
 	static Vector<String> get_create_function_rendering_drivers(int p_index);
-	static DisplayServer *create(int p_index, const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error);
+	static DisplayServer *create(int p_index, const String &p_rendering_driver, WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Vector2i *p_position, const Vector2i &p_resolution, int p_screen, Error &r_error, uint64_t native_main_window_handle);
 
 	DisplayServer();
 	~DisplayServer();

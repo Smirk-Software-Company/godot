@@ -33,8 +33,9 @@
 
 #ifdef IOS_ENABLED
 
-#import "ios.h"
-#import "joypad_ios.h"
+// Disabled for embedding
+// #import "ios.h"
+// #import "joypad_ios.h"
 
 #import "drivers/coreaudio/audio_driver_coreaudio.h"
 #include "drivers/unix/os_unix.h"
@@ -54,9 +55,9 @@ private:
 
 	AudioDriverCoreAudio audio_driver;
 
-	iOS *ios = nullptr;
+	// iOS *ios = nullptr;
 
-	JoypadIOS *joypad_ios = nullptr;
+	// JoypadIOS *joypad_ios = nullptr;
 
 	MainLoop *main_loop = nullptr;
 
@@ -74,6 +75,7 @@ private:
 	virtual void finalize() override;
 
 	bool is_focused = false;
+	bool is_paused = false;
 
 	CGFloat _weight_to_ct(int p_weight) const;
 	CGFloat _stretch_to_ct(int p_stretch) const;
@@ -120,6 +122,8 @@ public:
 
 	virtual String get_unique_id() const override;
 	virtual String get_processor_name() const override;
+
+	virtual void set_pause(bool pause) override;
 
 	virtual void vibrate_handheld(int p_duration_ms = 500) override;
 

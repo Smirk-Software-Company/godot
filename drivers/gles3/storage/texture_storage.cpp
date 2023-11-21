@@ -1665,8 +1665,6 @@ AABB TextureStorage::decal_get_aabb(RID p_decal) const {
 
 /* RENDER TARGET API */
 
-GLuint TextureStorage::system_fbo = 0;
-
 void TextureStorage::_update_render_target(RenderTarget *rt) {
 	// do not allocate a render target with no size
 	if (rt->size.x <= 0 || rt->size.y <= 0) {
@@ -1675,7 +1673,7 @@ void TextureStorage::_update_render_target(RenderTarget *rt) {
 
 	// do not allocate a render target that is attached to the screen
 	if (rt->direct_to_screen) {
-		rt->fbo = system_fbo;
+		rt->fbo = rt->screen_fbo;
 		return;
 	}
 
@@ -1817,7 +1815,7 @@ void TextureStorage::_update_render_target(RenderTarget *rt) {
 
 	glClearColor(0, 0, 0, 0);
 	glClear(GL_COLOR_BUFFER_BIT);
-	glBindFramebuffer(GL_FRAMEBUFFER, system_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, rt->screen_fbo);
 }
 
 void TextureStorage::_create_render_target_backbuffer(RenderTarget *rt) {
@@ -1854,7 +1852,7 @@ void TextureStorage::_create_render_target_backbuffer(RenderTarget *rt) {
 		GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 		if (status != GL_FRAMEBUFFER_COMPLETE) {
 			WARN_PRINT_ONCE("Cannot allocate mipmaps for canvas screen blur. Status: " + get_framebuffer_error(status));
-			glBindFramebuffer(GL_FRAMEBUFFER, system_fbo);
+			glBindFramebuffer(GL_FRAMEBUFFER, rt->screen_fbo);
 			return;
 		}
 		GLES3::Utilities::get_singleton()->texture_allocated_data(rt->backbuffer, texture_size_bytes, "Render target backbuffer color texture");
@@ -2205,6 +2203,15 @@ void TextureStorage::render_target_set_direct_to_screen(RID p_render_target, boo
 	_update_render_target(rt);
 }
 
+void TextureStorage::render_target_set_screen_native_id(RID p_render_target, int p_screen_id) {
+	RenderTarget *rt = render_target_owner.get_or_null(p_render_target);
+	ERR_FAIL_NULL(rt);
+
+	rt->screen_fbo = p_screen_id;
+
+	_update_render_target(rt);
+}
+
 bool TextureStorage::render_target_get_direct_to_screen(RID p_render_target) const {
 	RenderTarget *rt = render_target_owner.get_or_null(p_render_target);
 	ERR_FAIL_NULL_V(rt, false);
@@ -2281,7 +2288,7 @@ void TextureStorage::render_target_do_clear_request(RID p_render_target) {
 
 	glClearBufferfv(GL_COLOR, 0, rt->clear_color.components);
 	rt->clear_requested = false;
-	glBindFramebuffer(GL_FRAMEBUFFER, system_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, rt->screen_fbo);
 }
 
 void TextureStorage::render_target_set_sdf_size_and_scale(RID p_render_target, RS::ViewportSDFOversize p_size, RS::ViewportSDFScale p_scale) {
@@ -2568,7 +2575,7 @@ void TextureStorage::render_target_sdf_process(RID p_render_target) {
 	copy_effects->draw_screen_triangle();
 
 	glBindTexture(GL_TEXTURE_2D, 0);
-	glBindFramebuffer(GL_FRAMEBUFFER, system_fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, rt->screen_fbo);
 	glDeleteFramebuffers(1, &temp_fb);
 	glDisable(GL_SCISSOR_TEST);
 }

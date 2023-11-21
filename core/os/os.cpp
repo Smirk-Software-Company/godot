@@ -561,6 +561,10 @@ void OS::close_midi_inputs() {
 	}
 }
 
+void OS::set_pause(bool pause) {
+	ERR_PRINT("Pause is not supported on this platform.");
+}
+
 void OS::add_frame_delay(bool p_can_draw) {
 	const uint32_t frame_delay = Engine::get_singleton()->get_frame_delay();
 	if (frame_delay) {

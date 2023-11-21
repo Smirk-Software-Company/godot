@@ -34,6 +34,7 @@
 #include "core/error/error_list.h"
 #include "core/os/thread.h"
 #include "core/typedefs.h"
+#include "servers/display_server.h"
 
 template <class T>
 class Vector;
@@ -47,6 +48,7 @@ class Main {
 	static bool force_redraw_requested;
 	static int iterating;
 	static bool agile_input_event_flushing;
+	static DisplayServer::WindowID window_id;
 
 public:
 	static bool is_cmdline_tool();
@@ -60,7 +62,7 @@ public:
 
 	static int test_entrypoint(int argc, char *argv[], bool &tests_need_run);
 	static Error setup(const char *execpath, int argc, char *argv[], bool p_second_phase = true);
-	static Error setup2(); // The thread calling setup2() will effectively become the main thread.
+	static Error setup2(uint64_t native_main_window_handle = 0); // The thread calling setup2() will effectively become the main thread.
 	static String get_rendering_driver_name();
 #ifdef TESTS_ENABLED
 	static Error test_setup();

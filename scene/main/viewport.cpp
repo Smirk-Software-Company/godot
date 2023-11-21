@@ -726,6 +726,7 @@ void Viewport::_process_picking() {
 		Ref<InputEventMouseMotion> mm;
 		mm.instantiate();
 
+		mm->set_window_id(get_window_id());
 		mm->set_device(InputEvent::DEVICE_ID_INTERNAL);
 		mm->set_position(get_mouse_position());
 		mm->set_global_position(mm->get_position());
@@ -2586,6 +2587,7 @@ void Viewport::_drop_mouse_focus() {
 		if ((int)mask & (1 << i)) {
 			Ref<InputEventMouseButton> mb;
 			mb.instantiate();
+			mb->set_window_id(get_window_id());
 			mb->set_position(c->get_local_mouse_position());
 			mb->set_global_position(c->get_local_mouse_position());
 			mb->set_button_index(MouseButton(i + 1));
@@ -2714,6 +2716,7 @@ void Viewport::_post_gui_grab_click_focus() {
 
 				// Send unclick.
 
+				mb->set_window_id(get_window_id());
 				mb->set_position(click);
 				mb->set_button_index(MouseButton(i + 1));
 				mb->set_pressed(false);
@@ -2732,6 +2735,7 @@ void Viewport::_post_gui_grab_click_focus() {
 
 				// Send click.
 
+				mb->set_window_id(get_window_id());
 				mb->set_position(click);
 				mb->set_button_index(MouseButton(i + 1));
 				mb->set_pressed(true);

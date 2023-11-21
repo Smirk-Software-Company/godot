@@ -31,8 +31,14 @@
 #import <OpenGLES/EAGLDrawable.h>
 #import <QuartzCore/QuartzCore.h>
 
+#import <OpenGLES/EAGL.h>
+#import <OpenGLES/ES1/gl.h>
+#import <OpenGLES/ES1/glext.h>
+
 @protocol DisplayLayer <NSObject>
 
++ (void)initializeCommon;
++ (void)deinitializeCommon;
 - (void)startRenderDisplayLayer;
 - (void)stopRenderDisplayLayer;
 - (void)initializeDisplayLayer;
@@ -53,7 +59,8 @@ API_AVAILABLE(ios(13.0))
 #endif
 @end
 
-API_DEPRECATED("OpenGLES is deprecated", ios(2.0, 12.0))
 @interface GodotOpenGLLayer : CAEAGLLayer <DisplayLayer>
+
+- (GLuint)fbo;
 
 @end
