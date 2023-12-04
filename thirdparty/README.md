@@ -530,7 +530,8 @@ Files extracted from upstream repository:
 - `mingw.shared_mutex.h`
 - `mingw.thread.h`
 
-Once copied, apply `no_except.patch` (needed because Godot is built without exceptions).
+Once copied, apply `godot.patch` (needed because Godot is built without exceptions
+and to avoid std:: replacements leak in Clang builds).
 
 
 ## minimp3
@@ -582,6 +583,8 @@ Files extracted from the upstream source:
 Important: Some files have Godot-made changes for use in core/io.
 They are marked with `/* GODOT start */` and `/* GODOT end */`
 comments and a patch is provided in the `patches` folder.
+
+Another patch is included to fix CVE-2023-45853.
 
 
 ## misc

@@ -1047,11 +1047,6 @@ void EditorNode::_sources_changed(bool p_exist) {
 		// loading textures, as they are now properly imported.
 		RenderingServer::get_singleton()->global_shader_parameters_load_settings(true);
 
-		// Start preview thread now that it's safe.
-		if (!singleton->cmdline_export_mode) {
-			EditorResourcePreview::get_singleton()->start();
-		}
-
 		_load_editor_layout();
 
 		if (!defer_load_scene.is_empty()) {
@@ -1065,6 +1060,11 @@ void EditorNode::_sources_changed(bool p_exist) {
 
 		if (SurfaceUpgradeTool::get_singleton()->is_show_requested()) {
 			SurfaceUpgradeTool::get_singleton()->show_popup();
+		}
+
+		// Start preview thread now that it's safe.
+		if (!singleton->cmdline_export_mode) {
+			EditorResourcePreview::get_singleton()->start();
 		}
 	}
 }
@@ -1761,6 +1761,10 @@ static void _reset_animation_mixers(Node *p_node, List<Pair<AnimationMixer *, Re
 }
 
 void EditorNode::_save_scene(String p_file, int idx) {
+	if (!saving_scene.is_empty() && saving_scene == p_file) {
+		return;
+	}
+
 	Node *scene = editor_data.get_edited_scene_root(idx);
 
 	if (!scene) {
@@ -1817,7 +1821,9 @@ void EditorNode::_save_scene(String p_file, int idx) {
 	emit_signal(SNAME("scene_saved"), p_file);
 
 	_save_external_resources();
+	saving_scene = p_file; // Some editors may save scenes of built-in resources as external data, so avoid saving this scene again.
 	editor_data.save_editor_external_data();
+	saving_scene = "";
 
 	for (Pair<AnimationMixer *, Ref<AnimatedValuesBackup>> &E : anim_backups) {
 		E.first->restore(E.second);
@@ -2937,8 +2943,13 @@ void EditorNode::_menu_option_confirm(int p_option, bool p_confirmed) {
 			feature_profile_manager->popup_centered_clamped(Size2(900, 800) * EDSCALE, 0.8);
 		} break;
 		case SETTINGS_TOGGLE_FULLSCREEN: {
-			DisplayServer::get_singleton()->window_set_mode(DisplayServer::get_singleton()->window_get_mode() == DisplayServer::WINDOW_MODE_FULLSCREEN ? DisplayServer::WINDOW_MODE_WINDOWED : DisplayServer::WINDOW_MODE_FULLSCREEN);
-
+			DisplayServer::WindowMode mode = DisplayServer::get_singleton()->window_get_mode();
+			if (mode == DisplayServer::WINDOW_MODE_FULLSCREEN || mode == DisplayServer::WINDOW_MODE_EXCLUSIVE_FULLSCREEN) {
+				DisplayServer::get_singleton()->window_set_mode(prev_mode);
+			} else {
+				prev_mode = mode;
+				DisplayServer::get_singleton()->window_set_mode(DisplayServer::WINDOW_MODE_FULLSCREEN);
+			}
 		} break;
 		case EDITOR_SCREENSHOT: {
 			screenshot_timer->start();
@@ -3049,7 +3060,7 @@ void EditorNode::_tool_menu_option(int p_idx) {
 			orphan_resources->show();
 		} break;
 		case TOOLS_SURFACE_UPGRADE: {
-			surface_upgrade_dialog->popup_centered(Size2(750 * EDSCALE, 0));
+			surface_upgrade_dialog->popup_on_demand();
 		} break;
 		case TOOLS_CUSTOM: {
 			if (tool_menu->get_item_submenu(p_idx) == "") {

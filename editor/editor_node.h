@@ -332,6 +332,7 @@ private:
 	bool exiting = false;
 	bool dimmed = false;
 
+	DisplayServer::WindowMode prev_mode = DisplayServer::WINDOW_MODE_MAXIMIZED;
 	int old_split_ofs = 0;
 	VSplitContainer *top_split = nullptr;
 	HBoxContainer *bottom_hb = nullptr;
@@ -481,6 +482,7 @@ private:
 	String _tmp_import_path;
 	String external_file;
 	String open_navigate;
+	String saving_scene;
 
 	DynamicFontImportSettings *fontdata_import_settings = nullptr;
 	SceneImportSettings *scene_import_settings = nullptr;
@@ -713,6 +715,9 @@ public:
 	void set_visible_editor(EditorTable p_table) { editor_select(p_table); }
 
 	bool call_build();
+
+	// This is a very naive estimation, but we need something now. Will be reworked later.
+	bool is_editor_ready() const { return is_inside_tree() && !waiting_for_first_scan; }
 
 	static EditorNode *get_singleton() { return singleton; }
 
