@@ -414,13 +414,13 @@ bool UndoRedo::undo() {
 }
 
 int UndoRedo::get_history_count() {
-	ERR_FAIL_COND_V(action_level > 0, -1);
+	// ERR_FAIL_COND_V(action_level > 0, -1);
 
 	return actions.size();
 }
 
 int UndoRedo::get_current_action() {
-	ERR_FAIL_COND_V(action_level > 0, -1);
+	// ERR_FAIL_COND_V(action_level > 0, -1);
 
 	return current_action;
 }
@@ -446,7 +446,7 @@ void UndoRedo::clear_history(bool p_increase_version) {
 }
 
 String UndoRedo::get_current_action_name() const {
-	ERR_FAIL_COND_V(action_level > 0, "");
+	// ERR_FAIL_COND_V(action_level > 0, "");
 	if (current_action < 0) {
 		return "";
 	}
