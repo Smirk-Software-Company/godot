@@ -1674,6 +1674,11 @@ void SceneTree::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_multiplayer_poll_enabled", "enabled"), &SceneTree::set_multiplayer_poll_enabled);
 	ClassDB::bind_method(D_METHOD("is_multiplayer_poll_enabled"), &SceneTree::is_multiplayer_poll_enabled);
 
+	ClassDB::bind_method(D_METHOD("process", "time"), &SceneTree::process);
+	ClassDB::bind_method(D_METHOD("physics_process", "time"), &SceneTree::physics_process);
+	ClassDB::bind_method(D_METHOD("initialize"), &SceneTree::initialize);
+	ClassDB::bind_method(D_METHOD("finalize"), &SceneTree::finalize);
+
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_accept_quit"), "set_auto_accept_quit", "is_auto_accept_quit");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "quit_on_go_back"), "set_quit_on_go_back", "is_quit_on_go_back");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "debug_collisions_hint"), "set_debug_collisions_hint", "is_debugging_collisions_hint");
