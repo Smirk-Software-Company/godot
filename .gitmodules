@@ -1,3 +1,4 @@
 [submodule "modules/luaAPI"]
 	path = modules/luaAPI
-	url = https://github.com/WeaselGames/godot_luaAPI.git
+	url = https://github.com/Smirk-Software-Company/godot_luaAPI.git
+	branch = smirk
