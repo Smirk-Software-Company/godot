@@ -258,6 +258,8 @@
 #include "scene/3d/node_3d.h"
 #include "scene/3d/occluder_instance_3d.h"
 #include "scene/3d/path_3d.h"
+#include "scene/3d/physics/kinematic_body_3d.h"
+#include "scene/3d/physics/sensor_3d.h"
 #include "scene/3d/physics_body_3d.h"
 #include "scene/3d/ray_cast_3d.h"
 #include "scene/3d/reflection_probe.h"
@@ -555,6 +557,8 @@ void register_scene_types() {
 	GDREGISTER_CLASS(StaticBody3D);
 	GDREGISTER_CLASS(AnimatableBody3D);
 	GDREGISTER_CLASS(RigidBody3D);
+	GDREGISTER_CLASS(KinematicBody3D);
+	GDREGISTER_CLASS(Sensor3D);
 	GDREGISTER_CLASS(KinematicCollision3D);
 	GDREGISTER_CLASS(CharacterBody3D);
 	GDREGISTER_CLASS(SpringArm3D);
