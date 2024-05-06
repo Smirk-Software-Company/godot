@@ -44,6 +44,9 @@
 #include "scene/resources/packed_scene.h"
 #include "scene/scene_string_names.h"
 #include "viewport.h"
+#include "scene/3d/collision_object_3d.h"
+#include "scene/3d/physics_body_3d.h"
+#include "scene/3d/collision_shape_3d.h"
 
 #include <stdint.h>
 
@@ -185,6 +188,8 @@ void Node::_notification(int p_notification) {
 			}
 
 			GDVIRTUAL_CALL(_ready);
+
+			_setup_group();
 		} break;
 
 		case NOTIFICATION_POSTINITIALIZE: {
@@ -213,6 +218,119 @@ void Node::_notification(int p_notification) {
 			}
 		} break;
 	}
+}
+
+void Node::_setup_group() {
+	if (!this->is_in_group("__group3d")) return;
+
+	Node *body = _get_object_child_type(this, "CollisionObject3D");
+
+	if (body == nullptr) return;
+
+	PhysicsBody3D *physics_body = Object::cast_to<PhysicsBody3D>(body);
+	
+	// Don't collide with child bodies
+	if (physics_body != nullptr) {
+		TypedArray<Node> child_bodies = find_children("*", "CollisionObject3D", true, false);
+		for (int i = 0; i < child_bodies.size(); i++) {
+			CollisionObject3D *child_body = Object::cast_to<CollisionObject3D>(child_bodies[i]);
+			if (child_body != nullptr && child_body != physics_body) {
+				physics_body->add_collision_exception_with(child_body);
+			}
+		}
+	}
+
+	// Add collision shapes from children
+	TypedArray<Node> collision_shapes = find_children("*", "CollisionShape3D", true, false);
+	for (int i = 0; i < collision_shapes.size(); i++) {
+		Node *node = Object::cast_to<Node>(collision_shapes[i]);
+
+		// Ignore internal nodes
+		if (node->data.internal_mode != Node::INTERNAL_MODE_DISABLED) continue;
+		
+		CollisionShape3D *shape = Object::cast_to<CollisionShape3D>(collision_shapes[i]);
+		
+		if (shape == nullptr) continue;
+		
+		Node *duplicate = shape->duplicate(Node::DUPLICATE_SIGNALS | Node::DUPLICATE_GROUPS | Node::DUPLICATE_SCRIPTS | Node::DUPLICATE_USE_INSTANTIATION);
+		CollisionShape3D *duplicate_shape = Object::cast_to<CollisionShape3D>(duplicate);
+
+		if (duplicate_shape == nullptr) continue;
+
+		body->add_child(duplicate_shape, false, Node::INTERNAL_MODE_BACK);
+		duplicate_shape->set_global_transform(shape->get_global_transform());
+		duplicate_shape->add_to_group("__group3d_shape", false);
+	}
+}
+
+Node *Node::_get_object_child_type(Node *p_node, const String &p_type) {
+	if (p_node->is_class(p_type)) {
+		return p_node;
+	}
+
+	for (int i = 0; i < p_node->get_child_count(); i++) {
+		if (!p_node->get_child(i)->is_in_group("__object3d")) {
+			Node* result = _get_object_child_type(p_node->get_child(i), p_type);
+			if (result) {
+				return result;
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool Node::get_locked() {
+	return locked;
+}
+
+void Node::set_locked(bool p_locked) {
+	locked = p_locked;
+}
+
+Vector3 Node::get_reset_position() {
+	return reset_position;
+}
+
+void Node::set_reset_position(const Vector3 &p_reset_position) {
+	reset_position = p_reset_position;
+}
+
+Callable Node::get_create_callable() {
+	return create_callable;
+}
+
+void Node::set_create_callable(const Callable &p_callable) {
+	create_callable = p_callable;
+}
+
+void Node::reset() {
+	if (!create_callable.is_valid()) return;
+
+	Node* new_self = Object::cast_to<Node>(create_callable.call());
+
+	if (new_self == nullptr) return;
+	
+	Node* parent = data.parent;
+	int index = get_index();
+	
+	if (data.parent) {
+		parent->remove_child(this);
+		parent->add_child(new_self);
+		parent->move_child(new_self, index);
+	}
+
+	new_self->reset_position = reset_position;
+
+	if (reset_position != Vector3()) {
+		Node3D* node_3d = Object::cast_to<Node3D>(new_self);
+
+		if (node_3d != nullptr) {
+			node_3d->set_global_position(reset_position);
+		}
+	}
+
+	queue_free();
 }
 
 void Node::_propagate_ready() {
@@ -3260,6 +3378,20 @@ void Node::notify_thread_safe(int p_notification) {
 void Node::_bind_methods() {
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "editor/naming/node_name_num_separator", PROPERTY_HINT_ENUM, "None,Space,Underscore,Dash"), 0);
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "editor/naming/node_name_casing", PROPERTY_HINT_ENUM, "PascalCase,camelCase,snake_case"), NAME_CASING_PASCAL_CASE);
+
+	ClassDB::bind_method(D_METHOD("set_locked", "locked"), &Node::set_locked);
+	ClassDB::bind_method(D_METHOD("get_locked"), &Node::get_locked);
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "locked", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_locked", "get_locked");
+
+	ClassDB::bind_method(D_METHOD("set_create_callable", "create_callable"), &Node::set_create_callable);
+	ClassDB::bind_method(D_METHOD("get_create_callable"), &Node::get_create_callable);
+	ADD_PROPERTY(PropertyInfo(Variant::CALLABLE, "create_callable", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_create_callable", "get_create_callable");
+
+	ClassDB::bind_method(D_METHOD("set_reset_position", "reset_position"), &Node::set_reset_position);
+	ClassDB::bind_method(D_METHOD("get_reset_position"), &Node::get_reset_position);
+	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "reset_position", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_reset_position", "get_reset_position");
+
+	ClassDB::bind_method(D_METHOD("reset"), &Node::reset);
 
 	ClassDB::bind_static_method("Node", D_METHOD("print_orphan_nodes"), &Node::print_orphan_nodes);
 	ClassDB::bind_method(D_METHOD("add_sibling", "sibling", "force_readable_name"), &Node::add_sibling, DEFVAL(false));

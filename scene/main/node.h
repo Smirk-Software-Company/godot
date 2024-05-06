@@ -215,6 +215,9 @@ private:
 
 	} data;
 
+	void _setup_group();
+	static Node *_get_object_child_type(Node *p_node, const String &p_type);
+
 	Ref<MultiplayerAPI> multiplayer;
 
 	String _get_tree_string_pretty(const String &p_prefix, bool p_last);
@@ -378,6 +381,20 @@ public:
 		NOTIFICATION_EDITOR_PRE_SAVE = 9001,
 		NOTIFICATION_EDITOR_POST_SAVE = 9002,
 	};
+
+	bool locked;
+	bool get_locked();
+	void set_locked(bool p_locked);
+
+	Callable create_callable;
+	Callable get_create_callable();
+	void set_create_callable(const Callable &p_callable);
+	
+	Vector3 get_reset_position();
+	void set_reset_position(const Vector3 &p_reset_position);
+	Vector3 reset_position;
+	
+	void reset();
 
 	/* NODE/TREE */
 
