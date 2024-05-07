@@ -382,7 +382,7 @@ public:
 		NOTIFICATION_EDITOR_POST_SAVE = 9002,
 	};
 
-	bool locked;
+	bool locked = false;
 	bool get_locked();
 	void set_locked(bool p_locked);
 
