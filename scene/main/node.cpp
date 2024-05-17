@@ -268,6 +268,14 @@ void Node::_propagate_ready() {
 	}
 }
 
+void Node::_propagate_recursive_child_enter_tree(Node *p_child) {
+	if (data.parent) {
+		Variant c = p_child;
+		const Variant *cptr = &c;
+		data.parent->emit_signalp(SNAME("recursive_child_entered_tree"), &cptr, 1);
+	}
+}
+
 void Node::_propagate_enter_tree() {
 	// this needs to happen to all children before any enter_tree
 
@@ -301,6 +309,7 @@ void Node::_propagate_enter_tree() {
 		Variant c = this;
 		const Variant *cptr = &c;
 		data.parent->emit_signalp(SNAME("child_entered_tree"), &cptr, 1);
+		data.parent->emit_signalp(SNAME("recursive_child_entered_tree"), &cptr, 1);
 	}
 
 	data.blocked++;
@@ -3737,6 +3746,7 @@ void Node::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("tree_exiting"));
 	ADD_SIGNAL(MethodInfo("tree_exited"));
 	ADD_SIGNAL(MethodInfo("child_entered_tree", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Node")));
+	ADD_SIGNAL(MethodInfo("recursive_child_entered_tree", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Node")));
 	ADD_SIGNAL(MethodInfo("child_exiting_tree", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Node")));
 
 	ADD_SIGNAL(MethodInfo("child_order_changed"));
@@ -3825,6 +3835,7 @@ Node::Node() {
 	data.inside_tree = false;
 	data.ready_notified = false; // This is a small hack, so if a node is added during _ready() to the tree, it correctly gets the _ready() notification.
 	data.ready_first = true;
+	connect("recursive_child_entered_tree", callable_mp(this, &Node::_propagate_recursive_child_enter_tree));
 }
 
 Node::~Node() {

@@ -244,6 +244,8 @@ private:
 
 	} data;
 
+	void _propagate_recursive_child_enter_tree(Node *p_child);
+
 	Ref<MultiplayerAPI> multiplayer;
 
 	String _get_tree_string_pretty(const String &p_prefix, bool p_last);
