@@ -43,13 +43,26 @@ class CollisionShape3D : public Node3D {
 	uint32_t owner_id = 0;
 	CollisionObject3D *collision_object = nullptr;
 
+	RBMap<uint32_t, CollisionShape3D *> compound_shapes;
+	RBMap<uint32_t, CollisionShape3D *> compound_owners;
+
 #ifndef DISABLE_DEPRECATED
 	void resource_changed(Ref<Resource> res);
 #endif
 	bool disabled = false;
+	bool compound = false;
 
 protected:
-	void _update_in_shape_owner(bool p_xform_only = false);
+	void _update_in_shape_owner(uint32_t id, bool p_xform_only = false);
+	void _setup_compound_shapes();
+	void _dismantle_compound_shapes();
+	void _register_compound_shape(CollisionShape3D *p_shape);
+	void _deregister_compound_shape(uint32_t id);
+	Transform3D _get_shape_relative_transform(uint32_t id);
+	void _add_child_listeners();
+	void _remove_child_listeners();
+	void _child_added(Node *p_node);
+	void _child_removed(Node *p_node);
 
 protected:
 	void _notification(int p_what);
@@ -63,6 +76,11 @@ public:
 
 	void set_disabled(bool p_disabled);
 	bool is_disabled() const;
+
+	void set_compound(bool p_compound);
+	bool is_compound() const;
+
+	Ref<ArrayMesh> get_debug_mesh();
 
 	PackedStringArray get_configuration_warnings() const override;
 

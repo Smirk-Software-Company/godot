@@ -217,6 +217,7 @@ private:
 
 	void _setup_group();
 	static Node *_get_object_child_type(Node *p_node, const String &p_type);
+	void _propagate_recursive_child_enter_tree(Node *p_child);
 
 	Ref<MultiplayerAPI> multiplayer;
 

@@ -36,6 +36,45 @@
 #include "scene/resources/convex_polygon_shape_3d.h"
 #include "scene/resources/world_boundary_shape_3d.h"
 
+Ref<ArrayMesh> CollisionShape3D::get_debug_mesh() {
+	if (shape.is_valid()) {
+		return shape->get_debug_mesh();
+	}
+
+	if (compound) {
+		Ref<ArrayMesh> compound_mesh = memnew(ArrayMesh);
+		for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+			if (E.value->shape.is_valid()) {
+				Ref<ArrayMesh> child_mesh = E.value->shape->get_debug_mesh();
+				Transform3D child_transform = _get_shape_relative_transform(E.key);
+				if (child_mesh.is_valid()) {
+					for (int i = 0; i < child_mesh->get_surface_count(); ++i) {
+						Array surface = child_mesh->surface_get_arrays(i);
+						if (surface.is_empty())
+							continue;
+
+						// Transform the vertices
+						PackedVector3Array vertices = surface[Mesh::ARRAY_VERTEX];
+						PackedVector3Array transformed_vertices;
+						transformed_vertices.resize(vertices.size());
+
+						for (int j = 0; j < vertices.size(); ++j) {
+							transformed_vertices.write[j] = child_transform.xform(vertices[j]);
+						}
+						surface[Mesh::ARRAY_VERTEX] = transformed_vertices;
+
+						// Add the transformed surface to the compound mesh
+						compound_mesh->add_surface_from_arrays(Mesh::PRIMITIVE_LINES, surface);
+					}
+				}
+			}
+		}
+		return compound_mesh;
+	}
+
+	return nullptr;
+}
+
 void CollisionShape3D::make_convex_from_siblings() {
 	Node *p = get_parent();
 	if (!p) {
@@ -68,12 +107,25 @@ void CollisionShape3D::make_convex_from_siblings() {
 	set_shape(shape_new);
 }
 
-void CollisionShape3D::_update_in_shape_owner(bool p_xform_only) {
-	collision_object->shape_owner_set_transform(owner_id, get_transform());
+Transform3D CollisionShape3D::_get_shape_relative_transform(uint32_t id) {
+	if (id == owner_id) {
+		return get_transform();
+	}
+
+	if (compound_shapes.has(id)) {
+		// Returns the local transform of the shape relative to this transform
+		return get_global_transform().affine_inverse() * compound_shapes[id]->get_global_transform();
+	}
+
+	return Transform3D();
+}
+
+void CollisionShape3D::_update_in_shape_owner(uint32_t id, bool p_xform_only) {
+	collision_object->shape_owner_set_transform(id, _get_shape_relative_transform(id));
 	if (p_xform_only) {
 		return;
 	}
-	collision_object->shape_owner_set_disabled(owner_id, disabled);
+	collision_object->shape_owner_set_disabled(id, disabled);
 }
 
 void CollisionShape3D::_notification(int p_what) {
@@ -85,30 +137,71 @@ void CollisionShape3D::_notification(int p_what) {
 				if (shape.is_valid()) {
 					collision_object->shape_owner_add_shape(owner_id, shape);
 				}
-				_update_in_shape_owner();
+				_update_in_shape_owner(owner_id);
+
+				if (compound) {
+					_add_child_listeners();
+					_setup_compound_shapes();
+				}
 			}
 		} break;
 
 		case NOTIFICATION_ENTER_TREE: {
 			if (collision_object) {
-				_update_in_shape_owner();
-			}
-		} break;
+				_update_in_shape_owner(owner_id);
 
-		case NOTIFICATION_LOCAL_TRANSFORM_CHANGED: {
-			if (collision_object) {
-				_update_in_shape_owner(true);
+				if (compound) {
+					for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+						_update_in_shape_owner(E.key);
+					}
+				}
 			}
-			update_configuration_warnings();
-		} break;
+			break;
 
-		case NOTIFICATION_UNPARENTED: {
-			if (collision_object) {
-				collision_object->remove_shape_owner(owner_id);
-			}
-			owner_id = 0;
-			collision_object = nullptr;
-		} break;
+			case NOTIFICATION_LOCAL_TRANSFORM_CHANGED: {
+				if (collision_object && is_inside_tree()) {
+					_update_in_shape_owner(owner_id, true);
+
+					if (compound) {
+						for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+							if (E.value->is_inside_tree()) {
+								_update_in_shape_owner(E.key, true);
+							}
+						}
+					}
+				}
+				update_configuration_warnings();
+			} break;
+
+			case NOTIFICATION_TRANSFORM_CHANGED: {
+				for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_owners) {
+					if (E.value->collision_object) {
+						E.value->_update_in_shape_owner(E.key, true);
+					}
+				}
+			} break;
+
+			case NOTIFICATION_UNPARENTED: {
+				if (collision_object) {
+					collision_object->remove_shape_owner(owner_id);
+
+					if (compound) {
+						_remove_child_listeners();
+						_dismantle_compound_shapes();
+					}
+				}
+				owner_id = 0;
+				collision_object = nullptr;
+			} break;
+
+			case NOTIFICATION_ENABLED: {
+				// TODO: tell compound owners?
+			} break;
+
+			case NOTIFICATION_DISABLED: {
+				// TODO: tell compound owners?
+			} break;
+		}
 	}
 }
 
@@ -153,16 +246,23 @@ void CollisionShape3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_shape"), &CollisionShape3D::get_shape);
 	ClassDB::bind_method(D_METHOD("set_disabled", "enable"), &CollisionShape3D::set_disabled);
 	ClassDB::bind_method(D_METHOD("is_disabled"), &CollisionShape3D::is_disabled);
+	ClassDB::bind_method(D_METHOD("set_compound", "compound"), &CollisionShape3D::set_compound);
+	ClassDB::bind_method(D_METHOD("is_compound"), &CollisionShape3D::is_compound);
 	ClassDB::bind_method(D_METHOD("make_convex_from_siblings"), &CollisionShape3D::make_convex_from_siblings);
+	ClassDB::bind_method(D_METHOD("get_debug_mesh"), &CollisionShape3D::get_debug_mesh);
 	ClassDB::set_method_flags("CollisionShape3D", "make_convex_from_siblings", METHOD_FLAGS_DEFAULT | METHOD_FLAG_EDITOR);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "shape", PROPERTY_HINT_RESOURCE_TYPE, "Shape3D"), "set_shape", "get_shape");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "disabled"), "set_disabled", "is_disabled");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "compound"), "set_compound", "is_compound");
 }
 
 void CollisionShape3D::set_shape(const Ref<Shape3D> &p_shape) {
 	if (p_shape == shape) {
 		return;
+	}
+	if (compound) {
+		set_compound(false);
 	}
 	if (shape.is_valid()) {
 		shape->disconnect_changed(callable_mp((Node3D *)this, &Node3D::update_gizmos));
@@ -181,7 +281,7 @@ void CollisionShape3D::set_shape(const Ref<Shape3D> &p_shape) {
 
 	if (is_inside_tree() && collision_object) {
 		// If this is a heightfield shape our center may have changed
-		_update_in_shape_owner(true);
+		_update_in_shape_owner(owner_id, true);
 	}
 	update_configuration_warnings();
 }
@@ -195,11 +295,201 @@ void CollisionShape3D::set_disabled(bool p_disabled) {
 	update_gizmos();
 	if (collision_object) {
 		collision_object->shape_owner_set_disabled(owner_id, p_disabled);
+		for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+			collision_object->shape_owner_set_disabled(E.key, p_disabled);
+		}
 	}
 }
 
 bool CollisionShape3D::is_disabled() const {
 	return disabled;
+}
+
+void CollisionShape3D::_setup_compound_shapes() {
+	TypedArray<Node> collision_shapes = collision_object->find_children("*", "CollisionShape3D", true, false);
+	for (int i = 0; i < collision_shapes.size(); i++) {
+		// Node *node = Object::cast_to<Node>(collision_shapes[i]);
+
+		// // // Ignore internal nodes
+		// // if (node->data.internal_mode != Node::INTERNAL_MODE_DISABLED)
+		// // 	continue;
+
+		CollisionShape3D *shape = Object::cast_to<CollisionShape3D>(collision_shapes[i]);
+
+		if (shape == nullptr) {
+			continue;
+		}
+
+		_register_compound_shape(shape);
+	}
+}
+
+void CollisionShape3D::_dismantle_compound_shapes() {
+	// Collect keys to remove
+	Vector<uint32_t> keys_to_remove;
+	for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+		keys_to_remove.push_back(E.key);
+	}
+
+	// Remove collected keys
+	for (uint32_t key : keys_to_remove) {
+		_deregister_compound_shape(key);
+	}
+
+	compound_shapes.clear();
+}
+
+void CollisionShape3D::_deregister_compound_shape(uint32_t id) {
+	collision_object->remove_shape_owner(id);
+
+	if (!compound_shapes.has(id)) {
+		return;
+	}
+
+	CollisionShape3D *compound_shape = compound_shapes[id];
+	compound_shape->set_notify_transform(false);
+	compound_shape->compound_owners.erase(id);
+
+	// printf("deregistering compound shape %s   self: %s\n", compound_shape->to_string().utf8().get_data(), this->to_string().utf8().get_data());
+
+	if (compound_shape->is_connected("tree_exiting", callable_mp(this, &CollisionShape3D::_child_removed).bind(compound_shape))) {
+		compound_shape->disconnect("tree_exiting", callable_mp(this, &CollisionShape3D::_child_removed).bind(compound_shape));
+	}
+
+	if (compound_shape->shape.is_valid()) {
+		// TODO: unregister shape changed
+	}
+
+	compound_shapes.erase(id);
+}
+
+void CollisionShape3D::_register_compound_shape(CollisionShape3D *p_shape) {
+	if (!collision_object) {
+		return;
+	}
+
+	if (p_shape == this) {
+		return;
+	}
+
+	// Don't register duplicates
+	for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+		if (E.value == p_shape) {
+			return;
+		}
+	}
+
+	// printf("registering compound shape %s   self: %s\n", p_shape->to_string().utf8().get_data(), this->to_string().utf8().get_data());
+
+	uint32_t id = collision_object->create_shape_owner(p_shape);
+
+	compound_shapes[id] = p_shape;
+
+	p_shape->set_notify_transform(true);
+	p_shape->compound_owners[id] = this;
+
+	if (!p_shape->is_connected("tree_exiting", callable_mp(this, &CollisionShape3D::_child_removed).bind(p_shape))) {
+		p_shape->connect("tree_exiting", callable_mp(this, &CollisionShape3D::_child_removed).bind(p_shape));
+	}
+
+	if (p_shape->shape.is_valid()) {
+		collision_object->shape_owner_add_shape(id, p_shape->shape);
+		// TODO: register shape changed
+	}
+
+	_update_in_shape_owner(id);
+
+	// add shape to owner & add to our local map cache
+	// add listeners for this shape being added to and removed from tree
+	// listener for its global transform being updated
+	// should probably accept a compound parent too so it can quickly pass up the global transform. only thing is this will create a circular reference but it should be fine since we have manual memory management. prob just need to kill the refs in the deinit. either that or use a weak ptr to the compound parent (might be better)
+}
+
+void CollisionShape3D::_add_child_listeners() {
+	if (!collision_object->is_connected("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added))) {
+		collision_object->connect("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added));
+	}
+}
+
+void CollisionShape3D::_remove_child_listeners() {
+	if (collision_object->is_connected("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added))) {
+		collision_object->disconnect("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added));
+	}
+}
+
+void CollisionShape3D::_child_added(Node *p_node) {
+	if (!compound) {
+		return;
+	}
+
+	// printf("child added %s\n", p_node->to_string().utf8().get_data());
+
+	CollisionShape3D *shape = Object::cast_to<CollisionShape3D>(p_node);
+	if (shape) {
+		_register_compound_shape(shape);
+	}
+}
+
+void CollisionShape3D::_child_removed(Node *p_node) {
+	if (!compound) {
+		return;
+	}
+
+	// printf("child removed %s\n", p_node->to_string().utf8().get_data());
+
+	CollisionShape3D *shape = Object::cast_to<CollisionShape3D>(p_node);
+
+	if (shape == nullptr) {
+		return;
+	}
+
+	// Collect keys to remove
+	Vector<uint32_t> keys_to_remove;
+	for (KeyValue<uint32_t, CollisionShape3D *> &E : compound_shapes) {
+		if (E.value == shape) {
+			keys_to_remove.push_back(E.key);
+		}
+	}
+
+	// Remove collected keys
+	for (uint32_t key : keys_to_remove) {
+		_deregister_compound_shape(key);
+	}
+}
+
+void CollisionShape3D::set_compound(bool p_compound) {
+	if (compound == p_compound) {
+		return;
+	}
+
+	// printf("setting compound %s\n", p_compound ? "true" : "false");
+
+	compound = p_compound;
+
+	if (compound) {
+		if (collision_object) {
+			_setup_compound_shapes();
+
+			_add_child_listeners();
+		}
+	} else {
+		_dismantle_compound_shapes();
+
+		if (collision_object) {
+			_remove_child_listeners();
+		}
+	}
+
+	// need to maintain a list of the child collision shapes (prob has to be a map of id to shape node liek the shapes property on collision object 3d so we can pass over the correct id for updating transform and such)
+	// when any are added or removed, we keep the list up to date
+	// when the transform of those shapes relative to this one changes, we need to pass that over to the collision object
+	// look at the process mode of the children as well to determine if they are active (prob) NOTIFICATION_DISABLED & NOTIFICATION_ENABLED
+
+	// maybe we do something like "add compound owner" for other shapes to easily pass up their transforms when they change cause if not idk how we'll wire up the global transform changes
+}
+
+bool CollisionShape3D::is_compound() const {
+	return compound;
 }
 
 CollisionShape3D::CollisionShape3D() {

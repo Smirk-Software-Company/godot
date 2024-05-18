@@ -240,6 +240,13 @@ void Node::_setup_group() {
 		}
 	}
 
+	Node *collider = _get_object_child_type(this, "CollisionShape3D");
+
+	// Only add collision shapes if there is no existing collider
+	if (collider != nullptr) {
+		return;
+	}
+
 	// Add collision shapes from children
 	TypedArray<Node> collision_shapes = find_children("*", "CollisionShape3D", true, false);
 	for (int i = 0; i < collision_shapes.size(); i++) {
@@ -351,6 +358,14 @@ void Node::_propagate_ready() {
 	}
 }
 
+void Node::_propagate_recursive_child_enter_tree(Node *p_child) {
+	if (data.parent) {
+		Variant c = p_child;
+		const Variant *cptr = &c;
+		data.parent->emit_signalp(SNAME("recursive_child_entered_tree"), &cptr, 1);
+	}
+}
+
 void Node::_propagate_enter_tree() {
 	// this needs to happen to all children before any enter_tree
 
@@ -384,6 +399,7 @@ void Node::_propagate_enter_tree() {
 		Variant c = this;
 		const Variant *cptr = &c;
 		data.parent->emit_signalp(SNAME("child_entered_tree"), &cptr, 1);
+		data.parent->emit_signalp(SNAME("recursive_child_entered_tree"), &cptr, 1);
 	}
 
 	data.blocked++;
@@ -3628,6 +3644,7 @@ void Node::_bind_methods() {
 	ADD_SIGNAL(MethodInfo("tree_exiting"));
 	ADD_SIGNAL(MethodInfo("tree_exited"));
 	ADD_SIGNAL(MethodInfo("child_entered_tree", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Node")));
+	ADD_SIGNAL(MethodInfo("recursive_child_entered_tree", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Node")));
 	ADD_SIGNAL(MethodInfo("child_exiting_tree", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_DEFAULT, "Node")));
 
 	ADD_SIGNAL(MethodInfo("child_order_changed"));
@@ -3679,6 +3696,7 @@ String Node::_get_name_num_separator() {
 
 Node::Node() {
 	orphan_node_count++;
+	connect("recursive_child_entered_tree", callable_mp(this, &Node::_propagate_recursive_child_enter_tree));
 }
 
 Node::~Node() {
