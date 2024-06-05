@@ -190,6 +190,11 @@ void Node::_notification(int p_notification) {
 			GDVIRTUAL_CALL(_ready);
 
 			_setup_group();
+
+			// Set version number to 1 if it wasn't set (before we implemented a version number)
+			if (!version_number_set) {
+				version = 1;
+			}
 		} break;
 
 		case NOTIFICATION_POSTINITIALIZE: {
@@ -218,6 +223,15 @@ void Node::_notification(int p_notification) {
 			}
 		} break;
 	}
+}
+
+int Node::get_node_version() {
+	return version;
+}
+
+void Node::set_node_version(int p_version) {
+	version = p_version;
+	version_number_set = true;
 }
 
 void Node::_setup_group() {
@@ -3394,6 +3408,10 @@ void Node::notify_thread_safe(int p_notification) {
 void Node::_bind_methods() {
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "editor/naming/node_name_num_separator", PROPERTY_HINT_ENUM, "None,Space,Underscore,Dash"), 0);
 	GLOBAL_DEF(PropertyInfo(Variant::INT, "editor/naming/node_name_casing", PROPERTY_HINT_ENUM, "PascalCase,camelCase,snake_case"), NAME_CASING_PASCAL_CASE);
+
+	ClassDB::bind_method(D_METHOD("set_node_version", "version"), &Node::set_node_version);
+	ClassDB::bind_method(D_METHOD("get_node_version"), &Node::get_node_version);
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "version", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_node_version", "get_node_version");
 
 	ClassDB::bind_method(D_METHOD("set_locked", "locked"), &Node::set_locked);
 	ClassDB::bind_method(D_METHOD("get_locked"), &Node::get_locked);
