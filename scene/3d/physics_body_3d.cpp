@@ -1804,6 +1804,10 @@ real_t CharacterBody3D::get_floor_angle(const Vector3 &p_up_direction) const {
 	return Math::acos(floor_normal.dot(p_up_direction));
 }
 
+ObjectID CharacterBody3D::get_platform_id() const {
+	return platform_object_id;
+}
+
 const Vector3 &CharacterBody3D::get_platform_velocity() const {
 	return platform_velocity;
 }
@@ -2019,6 +2023,7 @@ void CharacterBody3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_position_delta"), &CharacterBody3D::get_position_delta);
 	ClassDB::bind_method(D_METHOD("get_real_velocity"), &CharacterBody3D::get_real_velocity);
 	ClassDB::bind_method(D_METHOD("get_floor_angle", "up_direction"), &CharacterBody3D::get_floor_angle, DEFVAL(Vector3(0.0, 1.0, 0.0)));
+	ClassDB::bind_method(D_METHOD("get_platform_id"), &CharacterBody3D::get_platform_id);
 	ClassDB::bind_method(D_METHOD("get_platform_velocity"), &CharacterBody3D::get_platform_velocity);
 	ClassDB::bind_method(D_METHOD("get_platform_angular_velocity"), &CharacterBody3D::get_platform_angular_velocity);
 	ClassDB::bind_method(D_METHOD("get_slide_collision_count"), &CharacterBody3D::get_slide_collision_count);
