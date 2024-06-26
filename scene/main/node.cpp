@@ -190,11 +190,6 @@ void Node::_notification(int p_notification) {
 			GDVIRTUAL_CALL(_ready);
 
 			_setup_group();
-
-			// Set version number to 1 if it wasn't set (before we implemented a version number)
-			if (!version_number_set) {
-				version = 1;
-			}
 		} break;
 
 		case NOTIFICATION_POSTINITIALIZE: {
@@ -231,7 +226,6 @@ int Node::get_node_version() {
 
 void Node::set_node_version(int p_version) {
 	version = p_version;
-	version_number_set = true;
 }
 
 void Node::_setup_group() {

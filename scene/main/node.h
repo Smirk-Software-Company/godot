@@ -383,8 +383,7 @@ public:
 		NOTIFICATION_EDITOR_POST_SAVE = 9002,
 	};
 
-	bool version_number_set = false;
-	int version = 2; // Used for scripting APIs
+	int version = 1; // Used for scripting APIs
 	int get_node_version();
 	void set_node_version(int p_version);
 
