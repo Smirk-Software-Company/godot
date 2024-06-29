@@ -48,7 +48,7 @@ void Timer::_notification(int p_what) {
 			if (!processing || timer_process_callback == TIMER_PROCESS_PHYSICS || !is_processing_internal()) {
 				return;
 			}
-			time_left -= get_process_delta_time();
+			time_left -= ignore_time_scale ? get_process_delta_time() / Engine::get_singleton()->get_time_scale() : get_process_delta_time();
 
 			if (time_left < 0) {
 				if (!one_shot) {
@@ -65,7 +65,7 @@ void Timer::_notification(int p_what) {
 			if (!processing || timer_process_callback == TIMER_PROCESS_IDLE || !is_physics_processing_internal()) {
 				return;
 			}
-			time_left -= get_physics_process_delta_time();
+			time_left -= ignore_time_scale ? get_physics_process_delta_time() / Engine::get_singleton()->get_time_scale() : get_physics_process_delta_time();
 
 			if (time_left < 0) {
 				if (!one_shot) {
@@ -132,6 +132,14 @@ void Timer::set_paused(bool p_paused) {
 
 bool Timer::is_paused() const {
 	return paused;
+}
+
+void Timer::set_ignore_time_scale(bool p_ignore_time_scale) {
+	ignore_time_scale = p_ignore_time_scale;
+}
+
+bool Timer::get_ignore_time_scale() const {
+	return ignore_time_scale;
 }
 
 bool Timer::is_stopped() const {
@@ -206,6 +214,9 @@ void Timer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_paused", "paused"), &Timer::set_paused);
 	ClassDB::bind_method(D_METHOD("is_paused"), &Timer::is_paused);
 
+	ClassDB::bind_method(D_METHOD("set_ignore_time_scale", "ignore_time_scale"), &Timer::set_ignore_time_scale);
+	ClassDB::bind_method(D_METHOD("get_ignore_time_scale"), &Timer::get_ignore_time_scale);
+
 	ClassDB::bind_method(D_METHOD("is_stopped"), &Timer::is_stopped);
 
 	ClassDB::bind_method(D_METHOD("get_time_left"), &Timer::get_time_left);
@@ -220,6 +231,7 @@ void Timer::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "one_shot"), "set_one_shot", "is_one_shot");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "autostart"), "set_autostart", "has_autostart");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "paused", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_paused", "is_paused");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "ignore_time_scale", PROPERTY_HINT_NONE, "", PROPERTY_USAGE_NONE), "set_ignore_time_scale", "get_ignore_time_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "time_left", PROPERTY_HINT_NONE, "suffix:s", PROPERTY_USAGE_NONE), "", "get_time_left");
 
 	BIND_ENUM_CONSTANT(TIMER_PROCESS_PHYSICS);
