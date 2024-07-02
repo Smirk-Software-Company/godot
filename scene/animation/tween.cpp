@@ -227,6 +227,15 @@ Tween::TweenPauseMode Tween::get_pause_mode() {
 	return pause_mode;
 }
 
+Ref<Tween> Tween::set_ignore_time_scale(bool p_ignore_time_scale) {
+	ignore_time_scale = p_ignore_time_scale;
+	return this;
+}
+
+bool Tween::get_ignore_time_scale() const {
+	return ignore_time_scale;
+}
+
 Ref<Tween> Tween::set_parallel(bool p_parallel) {
 	default_parallel = p_parallel;
 	parallel_enabled = p_parallel;
@@ -325,7 +334,7 @@ bool Tween::step(double p_delta) {
 		started = true;
 	}
 
-	double rem_delta = p_delta * speed_scale;
+	double rem_delta = (ignore_time_scale ? p_delta / Engine::get_singleton()->get_time_scale() : p_delta) * speed_scale;
 	bool step_active = false;
 	total_time += rem_delta;
 
@@ -453,6 +462,7 @@ void Tween::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_process_mode", "mode"), &Tween::set_process_mode);
 	ClassDB::bind_method(D_METHOD("set_pause_mode", "mode"), &Tween::set_pause_mode);
 
+	ClassDB::bind_method(D_METHOD("set_ignore_time_scale", "ignore_time_scale"), &Tween::set_ignore_time_scale, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_parallel", "parallel"), &Tween::set_parallel, DEFVAL(true));
 	ClassDB::bind_method(D_METHOD("set_loops", "loops"), &Tween::set_loops, DEFVAL(0));
 	ClassDB::bind_method(D_METHOD("get_loops_left"), &Tween::get_loops_left);
