@@ -43,6 +43,7 @@ class CollisionShape3D : public Node3D {
 	uint32_t owner_id = 0;
 	CollisionObject3D *collision_object = nullptr;
 
+	CollisionObject3D *compound_owner = nullptr;
 	RBMap<uint32_t, CollisionShape3D *> compound_shapes;
 	RBMap<uint32_t, CollisionShape3D *> compound_owners;
 
@@ -63,6 +64,7 @@ protected:
 	void _remove_child_listeners();
 	void _child_added(Node *p_node);
 	void _child_removed(Node *p_node);
+	CollisionObject3D *_get_compound_collision_object();
 
 protected:
 	void _notification(int p_what);
@@ -79,6 +81,9 @@ public:
 
 	void set_compound(bool p_compound);
 	bool is_compound() const;
+
+	void set_compound_owner(Node *p_compound_owner);
+	CollisionObject3D *get_compound_owner() const;
 
 	Ref<ArrayMesh> get_debug_mesh();
 

@@ -112,7 +112,7 @@ Transform3D CollisionShape3D::_get_shape_relative_transform(uint32_t id) {
 		return get_transform();
 	}
 
-	if (compound_shapes.has(id)) {
+	if (compound_shapes.has(id) && is_inside_tree() && compound_shapes[id]->is_inside_tree()) {
 		// Returns the local transform of the shape relative to this transform
 		return get_global_transform().affine_inverse() * compound_shapes[id]->get_global_transform();
 	}
@@ -248,6 +248,8 @@ void CollisionShape3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_disabled"), &CollisionShape3D::is_disabled);
 	ClassDB::bind_method(D_METHOD("set_compound", "compound"), &CollisionShape3D::set_compound);
 	ClassDB::bind_method(D_METHOD("is_compound"), &CollisionShape3D::is_compound);
+	ClassDB::bind_method(D_METHOD("set_compound_owner", "owner"), &CollisionShape3D::set_compound_owner);
+	ClassDB::bind_method(D_METHOD("get_compound_owner"), &CollisionShape3D::get_compound_owner);
 	ClassDB::bind_method(D_METHOD("make_convex_from_siblings"), &CollisionShape3D::make_convex_from_siblings);
 	ClassDB::bind_method(D_METHOD("get_debug_mesh"), &CollisionShape3D::get_debug_mesh);
 	ClassDB::set_method_flags("CollisionShape3D", "make_convex_from_siblings", METHOD_FLAGS_DEFAULT | METHOD_FLAG_EDITOR);
@@ -255,6 +257,7 @@ void CollisionShape3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "shape", PROPERTY_HINT_RESOURCE_TYPE, "Shape3D"), "set_shape", "get_shape");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "disabled"), "set_disabled", "is_disabled");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "compound"), "set_compound", "is_compound");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "compound_owner"), "set_compound_owner", "get_compound_owner");
 }
 
 void CollisionShape3D::set_shape(const Ref<Shape3D> &p_shape) {
@@ -306,7 +309,7 @@ bool CollisionShape3D::is_disabled() const {
 }
 
 void CollisionShape3D::_setup_compound_shapes() {
-	TypedArray<Node> collision_shapes = collision_object->find_children("*", "CollisionShape3D", true, false);
+	TypedArray<Node> collision_shapes = _get_compound_collision_object()->find_children("*", "CollisionShape3D", true, false);
 	for (int i = 0; i < collision_shapes.size(); i++) {
 		// Node *node = Object::cast_to<Node>(collision_shapes[i]);
 
@@ -406,14 +409,14 @@ void CollisionShape3D::_register_compound_shape(CollisionShape3D *p_shape) {
 }
 
 void CollisionShape3D::_add_child_listeners() {
-	if (!collision_object->is_connected("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added))) {
-		collision_object->connect("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added));
+	if (!_get_compound_collision_object()->is_connected("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added))) {
+		_get_compound_collision_object()->connect("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added));
 	}
 }
 
 void CollisionShape3D::_remove_child_listeners() {
-	if (collision_object->is_connected("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added))) {
-		collision_object->disconnect("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added));
+	if (_get_compound_collision_object()->is_connected("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added))) {
+		_get_compound_collision_object()->disconnect("recursive_child_entered_tree", callable_mp(this, &CollisionShape3D::_child_added));
 	}
 }
 
@@ -467,7 +470,7 @@ void CollisionShape3D::set_compound(bool p_compound) {
 	compound = p_compound;
 
 	if (compound) {
-		if (collision_object) {
+		if (_get_compound_collision_object()) {
 			_setup_compound_shapes();
 
 			_add_child_listeners();
@@ -475,7 +478,7 @@ void CollisionShape3D::set_compound(bool p_compound) {
 	} else {
 		_dismantle_compound_shapes();
 
-		if (collision_object) {
+		if (_get_compound_collision_object()) {
 			_remove_child_listeners();
 		}
 	}
@@ -490,6 +493,51 @@ void CollisionShape3D::set_compound(bool p_compound) {
 
 bool CollisionShape3D::is_compound() const {
 	return compound;
+}
+
+// This tells us where to look for collision shapes.
+CollisionObject3D *CollisionShape3D::_get_compound_collision_object() {
+	if (compound_owner) {
+		return compound_owner;
+	}
+	return collision_object;
+}
+
+void CollisionShape3D::set_compound_owner(Node *p_compound_owner) {
+	if (compound_owner == p_compound_owner) {
+		return;
+	}
+
+	CollisionObject3D *p_compound_owner_object = Object::cast_to<CollisionObject3D>(p_compound_owner);
+	if (!p_compound_owner_object) {
+		return;
+	}
+
+	_dismantle_compound_shapes();
+
+	if (_get_compound_collision_object()) {
+		_remove_child_listeners();
+	}
+
+	if (compound_owner && compound_owner->is_connected("replacing_by", callable_mp(this, &CollisionShape3D::set_compound_owner))) {
+		compound_owner->disconnect("replacing_by", callable_mp(this, &CollisionShape3D::set_compound_owner));
+	}
+
+	compound_owner = p_compound_owner_object;
+
+	if (compound_owner && !compound_owner->is_connected("replacing_by", callable_mp(this, &CollisionShape3D::set_compound_owner))) {
+		compound_owner->connect("replacing_by", callable_mp(this, &CollisionShape3D::set_compound_owner));
+	}
+
+	if (compound && _get_compound_collision_object()) {
+		_setup_compound_shapes();
+
+		_add_child_listeners();
+	}
+}
+
+CollisionObject3D *CollisionShape3D::get_compound_owner() const {
+	return compound_owner;
 }
 
 CollisionShape3D::CollisionShape3D() {
